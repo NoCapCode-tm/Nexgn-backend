@@ -1,0 +1,42 @@
+import mongoose from "mongoose";
+
+const SignatureRequestSchema = new mongoose.Schema({
+
+    documentId:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"Document"
+    },
+
+    senderId:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"user"
+    },
+    expiresat:{
+        type:Date
+    },
+
+    recipient:{
+
+        userId:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:"User"
+        },
+        signedAt:{
+            type:Date,
+            default:null
+       },
+    },
+
+    overallStatus:{
+        type:String,
+        enum:[
+            "pending",
+            "Viewed",
+            "completed",
+            "cancelled"
+        ],
+        default:"pending"
+    }
+
+},{timestamps:true});
+export const signrequest = new mongoose.model("signrequest",SignatureRequestSchema)

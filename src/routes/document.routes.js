@@ -1,0 +1,12 @@
+import {Router} from "express"
+import { adminsignup, deleteAdmin, getAdmin, loginAdmin, logout } from "../controller/admin.controller";
+import { verifyjwt } from "../middleware/auth.middleware";
+import { createtemplate, deletetemplate, getsingletemplate, gettemplate } from "../controller/Template.controller";
+import { createdocument, deletedocument, getdocument, getsingledocument } from "../controller/document.controller";
+
+export const documentrouter = Router();
+
+documentrouter.route("/create").post(createdocument)
+documentrouter.route("/getdocument").get(getdocument)
+documentrouter.route("/deletedocument/:id").delete(deletedocument)
+documentrouter.route("/document/:id").get(getsingledocument)
