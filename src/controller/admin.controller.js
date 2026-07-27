@@ -65,8 +65,8 @@ export const loginAdmin = asynchandler(async(req,res)=>{
 
      const options = {
     httpOnly:true,
-    secure:false,
-    sameSite:"lax",
+    secure:true,
+    sameSite:"None",
     maxAge:9*60*60*1000
   }
 
