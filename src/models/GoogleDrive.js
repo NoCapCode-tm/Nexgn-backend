@@ -6,7 +6,6 @@ const GoogleDriveSchema = new mongoose.Schema({
     ref:"User",
     required:true
   },
-
   provider:{
     type:String,
     default:"google-drive"

@@ -1,9 +1,9 @@
-import { doc } from "../models/Document";
-import { signature } from "../models/Signature";
-import { signrequest } from "../models/SignatureRequest";
-import { Apierror } from "../utils/Apierror.utils";
-import { Apiresponse } from "../utils/Apiresponse.utils";
-import { asynchandler } from "../utils/Asynchandler.utils";
+import { doc } from "../models/Document.js";
+import { signature } from "../models/Signature.js";
+import { signrequest } from "../models/SignatureRequest.js";
+import { Apierror } from "../utils/Apierror.utils.js";
+import { Apiresponse } from "../utils/Apiresponse.utils.js";
+import { asynchandler } from "../utils/Asynchandler.utils.js";
 
 
 

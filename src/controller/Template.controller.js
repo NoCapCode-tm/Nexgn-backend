@@ -1,22 +1,35 @@
-import { template } from "../models/Template";
-import { templatewidget } from "../models/TemplateWidgets";
-import { Apierror } from "../utils/Apierror.utils";
-import { Apiresponse } from "../utils/Apiresponse.utils";
-import { asynchandler } from "../utils/Asynchandler.utils";
+import { template } from "../models/Template.js";
+import { templatewidget } from "../models/TemplateWidgets.js";
+import { Apierror } from "../utils/Apierror.utils.js";
+import { Apiresponse } from "../utils/Apiresponse.utils.js";
+import { asynchandler } from "../utils/Asynchandler.utils.js";
+import { uploadFileToDrive } from "../utils/uploadfiletodrive.utils.js";
 
 
 export const createtemplate = asynchandler(async(req,res)=>{
-    const{title ,content, drivelink , role,widget} = req.body
+   const body = req.body || {};
 
-    if(!title || !role ||!widget || widget.length === 0){
+const {
+  title,
+  content,
+  role,
+  widget,
+  note
+} = body;
+
+    if( !role ||!widget || widget.length === 0){
         throw new Apierror(400,"Please fill all the required fields")
     }
 
     let temple;
-    if(drivelink){
+    let driveLink = null;
+    if(req.file){
+        const uploadedFile = await uploadFileToDrive(req.user._id,req.file);
+        driveLink = uploadedFile.fileId; // ya uploadedFile.webViewLink
         temple = await template.create({
           name:title,
-          fileid:drivelink,
+          fileid:driveLink,
+          note,
           createdby:req.user._id
     })
     }else{
@@ -26,11 +39,15 @@ export const createtemplate = asynchandler(async(req,res)=>{
           createdby:req.user._id
     })
     }
+    const widget1 =
+  typeof req.body.widget === "string"
+    ? JSON.parse(req.body.widget)
+    : req.body.widget;
 
     const templatewidgets = await templatewidget.create({
         role,
         templateid:temple._id,
-        widget
+        widget:widget1
     })
 
     res.status(200)
@@ -39,7 +56,13 @@ export const createtemplate = asynchandler(async(req,res)=>{
 })
 
 export const gettemplate = asynchandler(async(req,res)=>{
-    const temple = await template.find();
+    const temple = await templatewidget.find().populate({
+    path: "templateid",
+    populate: {
+      path: "createdby",
+      select: "name", // choose the fields you want
+    },
+  });;
 
     if(!temple){
       throw new Apierror(404,"No Template Found")

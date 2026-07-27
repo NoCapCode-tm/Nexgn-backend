@@ -16,7 +16,7 @@ const verifyjwt = asynchandler(async (req, _, next) => {
       throw new Apierror(401, "Access token missing");
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_TOKEN);
+    const decoded = jwt.verify(token, process.env.TOKEN);
 
     if (!decoded || !decoded._id) {
       throw new Apierror(403, "Invalid token");

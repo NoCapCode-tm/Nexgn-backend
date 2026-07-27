@@ -17,6 +17,9 @@ const TemplateSchema = new mongoose.Schema({
     type:String,
     default:null
    },
+   note:{
+      type:String,
+   },
    createdby:{
     type:mongoose.Schema.Types.ObjectId,
     ref:"user"

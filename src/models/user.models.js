@@ -13,6 +13,7 @@ const UserSchema = mongoose.Schema({
         type:String,
         unique:true,
         trim:true,
+        required:true,
     },
     password:{
         type:String,
@@ -45,9 +46,33 @@ const UserSchema = mongoose.Schema({
             type:String,
         },
         team_size:{
-            type:Number,
+            type:String,
         },
+        industry:{
+            type:String,
+        }
 
+    },
+    gender:{
+        type:String
+    },
+    job_title:{
+      type:String
+    },
+    emergency_contact:{
+      type:Number
+    },
+    address:{
+        type:String
+    },
+    deleted:{
+        type:Boolean,
+        default:false
+    },
+    invitestatus:{
+        type:String,
+        enum:["Active","Not-Active","Declined"],
+        default:"Not-Active"
     }
 },{timestamps:true})
 
