@@ -156,13 +156,18 @@ export const updateAdmin = asynchandler(async (req, res) => {
   if(address !== undefined) admin.address = address;
   if(emergency !==undefined) admin.emergency_contact = emergency;
   if(gender !==undefined) admin.gender = gender;
-  if(currentpass !==undefined && updatepass!==undefined){
-     const correctpass = await admin.isPasswordcorrect(currentpass)
-     if(!correctpass){
-      throw new Apierror(400,"Wrong current password")
-     }
-     admin.password = updatepass
+  if (
+  currentpass?.trim() &&
+  updatepass?.trim()
+) {
+  const correctpass = await admin.isPasswordcorrect(currentpass);
+
+  if (!correctpass) {
+    throw new Apierror(400, "Wrong current password");
   }
+
+  admin.password = updatepass;
+}
 
   await admin.save();
 
