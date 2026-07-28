@@ -1,5 +1,5 @@
 import {Router} from "express"
-import { addcontact, adminsignup, declineInvitation, deleteAdmin, getAdmin, getsubadmin, getuser, inviteadmin, loginAdmin, logout, updateAdmin } from "../controller/admin.controller.js";
+import { addcontact, adminsignup, declineInvitation, deleteAdmin, getAdmin, getsubadmin, getuser, inviteadmin, loginAdmin, logout, setpass, updateAdmin } from "../controller/admin.controller.js";
 import { verifyjwt } from "../middleware/auth.middleware.js";
 import { upload } from "../middleware/multer.middleware.js";
 
@@ -13,6 +13,7 @@ adminrouter.post("/logout",verifyjwt,logout);
 adminrouter.post("/delete",deleteAdmin);
 adminrouter.post("/invite",verifyjwt,inviteadmin);
 adminrouter.get("/getsubadmin",getsubadmin);
+adminrouter.post("/setpassword",setpass);
 adminrouter.get(
     "/decline/:email",
     declineInvitation

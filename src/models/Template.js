@@ -9,9 +9,20 @@ const TemplateSchema = new mongoose.Schema({
     type:String,
     default:null
    },
-   fileid:{
-    type:String,
-    default:null,
+   file:{
+     fileId:{
+      type:String,
+     },
+     fileName:{
+      type:String,
+     },
+      webViewLink:{
+       type:String
+     },
+     downloadLink:{
+      type:String,
+     },
+    
    },
    htmlcontent:{
     type:String,

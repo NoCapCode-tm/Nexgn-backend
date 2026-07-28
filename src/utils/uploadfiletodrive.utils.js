@@ -53,7 +53,7 @@ export const uploadFileToDrive = async (userId, file) => {
   return {
     fileId: response.data.id,
     fileName: response.data.name,
-    webViewLink: `https://drive.google.com/file/d/${response.data.id}/view`,
-    downloadLink: `https://drive.google.com/uc?id=${response.data.id}`,
+    webViewLink: `https://drive.google.com/file/d/${response.data.id}/preview`,
+    downloadLink: `https://drive.google.com/uc?export=download&id=${response.data.id}`,
   };
 };

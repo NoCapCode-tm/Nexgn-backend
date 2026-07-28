@@ -24,11 +24,10 @@ const {
     let temple;
     let driveLink = null;
     if(req.file){
-        const uploadedFile = await uploadFileToDrive(req.user._id,req.file);
-        driveLink = uploadedFile.fileId; // ya uploadedFile.webViewLink
+        const uploadedFile = await uploadFileToDrive(req.user._id,req.file); // ya uploadedFile.webViewLink
         temple = await template.create({
           name:title,
-          fileid:driveLink,
+          file:uploadedFile,
           note,
           createdby:req.user._id
     })

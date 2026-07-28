@@ -448,3 +448,27 @@ export const declineInvitation = asynchandler(async (req, res) => {
     `);
 
 });
+
+export const setpass = asynchandler(async(req,res)=>{
+    const {email ,password} = req.body
+
+    if(!email || !password){
+        throw new Apierror(400,"Please fill all the required fields")
+    }
+
+    const subad = await user.findOne({
+        $or:[{email}]
+    })
+
+    if(!subad){
+        throw new Apierror(404,"No user found with this email")
+    }
+
+    subad.password = password
+    subad.invitestatus = "Active"
+
+    subad.save()
+
+    res.status(200)
+    .json(new Apiresponse(200,"Password set successfully",subad))
+})
