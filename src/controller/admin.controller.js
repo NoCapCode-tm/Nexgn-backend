@@ -339,12 +339,12 @@ export const inviteadmin = asynchandler(async(req,res)=>{
             <!-- Action Buttons -->
             <div class="flex flex-col sm:flex-row items-center gap-4 mb-8">
                 <!-- Accept CTA (Redirects to password creation) -->
-                <a href="http://localhost:5173/mail-invite/${email}" class="w-full sm:w-auto bg-nexgn-red hover:bg-nexgn-darkred text-white font-semibold py-3.5 px-8 rounded-xl text-center transition-colors shadow-sm">
+                <a href="https://prod.nexgn.cloud/mail-invite/${email}" class="w-full sm:w-auto bg-nexgn-red hover:bg-nexgn-darkred text-white font-semibold py-3.5 px-8 rounded-xl text-center transition-colors shadow-sm">
                     Accept Invitation
                 </a>
                 
                 <!-- Decline CTA (Logs the decline response) -->
-                <a href="http://localhost:5000/api/v1/admin/decline/${email}" class="w-full sm:w-auto bg-white border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 px-8 rounded-xl text-center transition-colors">
+                <a href="https://prod.nexgn.cloud/api/v1/admin/decline/${email}" class="w-full sm:w-auto bg-white border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 px-8 rounded-xl text-center transition-colors">
                     Decline
                 </a>
             </div>

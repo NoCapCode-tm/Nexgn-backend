@@ -1,3 +1,5 @@
+import { google } from "googleapis";
+import { googledrive } from "../models/GoogleDrive.js";
 import { template } from "../models/Template.js";
 import { templatewidget } from "../models/TemplateWidgets.js";
 import { Apierror } from "../utils/Apierror.utils.js";
@@ -70,6 +72,73 @@ export const gettemplate = asynchandler(async(req,res)=>{
     res.status(200)
     .json(new Apiresponse(200,"Templates Fetched Successfully",temple))
 })
+
+export const getTemplatePdf = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const temple = await template.findById(id);
+
+    if (!temple) {
+      return res.status(404).json({
+        success: false,
+        message: "Template not found",
+      });
+    }
+
+    const driveAccount = await googledrive.findOne({
+      userId: temple.createdby,
+      connected: true,
+    });
+
+    if (!driveAccount) {
+      return res.status(400).json({
+        success: false,
+        message: "Google Drive not connected",
+      });
+    }
+
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+
+    oauth2Client.setCredentials({
+      refresh_token: driveAccount.refreshToken,
+    });
+
+    const drive = google.drive({
+      version: "v3",
+      auth: oauth2Client,
+    });
+
+    const response = await drive.files.get(
+      {
+        fileId: temple.file.fileId, // <-- adjust according to your schema
+        alt: "media",
+      },
+      {
+        responseType: "stream",
+      }
+    );
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${temple.file.fileName}"`
+    );
+
+    response.data.pipe(res);
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
 
 export const deletetemplate = asynchandler(async(req,res)=>{
     const {id}= req.params

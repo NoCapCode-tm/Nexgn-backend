@@ -1,7 +1,7 @@
 import {Router} from "express"
 import { adminsignup, deleteAdmin, getAdmin, loginAdmin, logout } from "../controller/admin.controller.js";
 import { verifyjwt } from "../middleware/auth.middleware.js";
-import { createtemplate, deletetemplate, getsingletemplate, gettemplate } from "../controller/Template.controller.js";
+import { createtemplate, deletetemplate, getsingletemplate, gettemplate, getTemplatePdf } from "../controller/Template.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 
 export const templaterouter = Router();
@@ -13,5 +13,6 @@ templaterouter.post(
   createtemplate
 );
 templaterouter.route("/gettemplate").get(gettemplate)
+templaterouter.get("/template/:id/pdf", getTemplatePdf);
 templaterouter.route("/deletetemplate/:id").delete(deletetemplate)
 templaterouter.route("/template/:id").get(getsingletemplate)
