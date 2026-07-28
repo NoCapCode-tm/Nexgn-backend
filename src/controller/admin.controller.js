@@ -339,7 +339,7 @@ export const inviteadmin = asynchandler(async(req,res)=>{
             <!-- Action Buttons -->
             <div class="flex flex-col sm:flex-row items-center gap-4 mb-8">
                 <!-- Accept CTA (Redirects to password creation) -->
-                <a href="http://localhost:5174/mail-invite" class="w-full sm:w-auto bg-nexgn-red hover:bg-nexgn-darkred text-white font-semibold py-3.5 px-8 rounded-xl text-center transition-colors shadow-sm">
+                <a href="http://localhost:5173/mail-invite/${email}" class="w-full sm:w-auto bg-nexgn-red hover:bg-nexgn-darkred text-white font-semibold py-3.5 px-8 rounded-xl text-center transition-colors shadow-sm">
                     Accept Invitation
                 </a>
                 
