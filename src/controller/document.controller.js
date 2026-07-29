@@ -264,14 +264,16 @@ await Promise.all(tasks);
 })
 
 export const getdocument = asynchandler(async(req,res)=>{
-    const document = await doc.find();
+    const documents = await doc.find()
+  .populate("createdBy")
+  .populate("templateId");
 
-    if(!document){
+    if(!documents){
       throw new Apierror(404,"No Template Found")
     }
 
     res.status(200)
-    .json(new Apiresponse(200,"Templates Fetched Successfully",document))
+    .json(new Apiresponse(200,"Templates Fetched Successfully",documents))
 })
 
 export const deletedocument = asynchandler(async(req,res)=>{
