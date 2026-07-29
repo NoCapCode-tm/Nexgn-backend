@@ -6,7 +6,7 @@ import { createdocument, deletedocument, getdocument, getsingledocument } from "
 
 export const documentrouter = Router();
 
-documentrouter.route("/create").post(createdocument)
+documentrouter.route("/create").post(verifyjwt,createdocument)
 documentrouter.route("/getdocument").get(getdocument)
 documentrouter.route("/deletedocument/:id").delete(deletedocument)
 documentrouter.route("/document/:id").get(getsingledocument)
