@@ -1,3 +1,4 @@
+import { Resend } from "resend";
 import { doc } from "../models/Document.js";
 import { documentfield } from "../models/DocumentField.js";
 import { signrequest } from "../models/SignatureRequest.js";
