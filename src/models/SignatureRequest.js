@@ -4,7 +4,7 @@ const SignatureRequestSchema = new mongoose.Schema({
 
     documentId:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"Document"
+        ref:"doc"
     },
 
     senderId:{

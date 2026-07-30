@@ -63,7 +63,7 @@ export const gettemplate = asynchandler(async(req,res)=>{
       path: "createdby",
       select: "name", // choose the fields you want
     },
-  });;
+  })
 
     if(!temple){
       throw new Apierror(404,"No Template Found")
