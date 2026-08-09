@@ -6,14 +6,21 @@ import { user } from "../models/user.models.js";
 import { Apierror } from "../utils/Apierror.utils.js";
 import { asynchandler } from "../utils/Asynchandler.utils.js";
 import { Apiresponse } from "../utils/Apiresponse.utils.js";
+import { activitylog } from "../models/ActivityLog.js";
 
 
 
 export const createdocument = asynchandler(async(req,res)=>{
     const { title, drivefileid , templateid , applicants , documentwidgets ,expiry} = req.body
 
-    if(!title || !applicants){
+
+  if(!title || !applicants){
         throw new Apierror(400,"Please fill all the required fields")
+         const activity = await activitylog.create({
+             userId:req.user._id,
+             action:"Document Creation Failed",
+             status:"Failure"
+         })
     }
 
       let document;
@@ -44,7 +51,7 @@ export const createdocument = asynchandler(async(req,res)=>{
         
         const tasks = applicants.map(async (signee) => {
 
-    let member = await user.findOne({
+    let member = await user.find({
         email: signee.email
     });
 
@@ -259,6 +266,14 @@ await Promise.all(tasks);
         document.status = "sent";
         await document.save()
 
+        const activity = await activitylog.create({
+                    userId:req.user._id,
+                    refId:document._id,
+                    refModel: "doc",
+                    action:"Document Created Successfully",
+                    status:"Success"
+                })
+
         res.status(200)
         .json(new Apiresponse(200,"Document Created Successfully",document))
 })
@@ -278,12 +293,28 @@ export const getdocument = asynchandler(async(req,res)=>{
 
 export const deletedocument = asynchandler(async(req,res)=>{
     const {id}= req.params
+    const user = req.user
 
     if(!id){
         throw new Apierror(400,"Id not Found")
+         const activity = await activitylog.create({
+             userId:user._id,
+             refId:id,
+             refModel: "doc",
+             action:"Document deletion Failed",
+             status:"Failure"
+         })
     }
 
     await doc.findByIdAndDelete(id)
+
+    const activity = await activitylog.create({
+                    userId:user._id,
+                    refId:id,
+                    refModel: "doc",
+                    action:"Document deleted Successfully",
+                    status:"Success"
+                })
 
     res.status(200)
     .json(new Apiresponse(200,"Template Deleted Successfully",[]))

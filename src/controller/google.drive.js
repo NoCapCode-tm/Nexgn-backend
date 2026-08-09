@@ -1,5 +1,6 @@
 
 import oauth2client from "../config/drive.config.js";
+import { activitylog } from "../models/ActivityLog.js";
 import { googledrive } from "../models/GoogleDrive.js";
 import { Apiresponse } from "../utils/Apiresponse.utils.js";
 import { asynchandler } from "../utils/Asynchandler.utils.js";
@@ -28,10 +29,11 @@ export const getAuthurl = asynchandler(async (req, res) => {
 export const AuthCallback = asynchandler(async(req,res)=>{
     try {
       const { code, state } = req.query;
+      const user = req.user
 
 const { tokens } = await oauth2client.getToken(code);
 
-await googledrive.findOneAndUpdate(
+ const drive = await googledrive.findOneAndUpdate(
 
     {
         userId: state
@@ -48,6 +50,20 @@ await googledrive.findOneAndUpdate(
     }
 
 );
+
+  if(drive.connected === true){
+     const activity = await activitylog.create({
+             userId:user._id,
+             action:"Google Drive Connected",
+             status:"Success"
+         })
+  }else{
+    const activity = await activitylog.create({
+             userId:user._id,
+             action:"Google Drive Connection Failed",
+             status:"Failure"
+         })
+  }
     
         res.status(200)
         .redirect("http://localhost:5174/settings?drive=connected");
@@ -91,6 +107,12 @@ export const disconnectDrive = asynchandler(async(req,res)=>{
         userId:req.user._id
 
     });
+
+    const activity = await activitylog.create({
+             userId:req.user._id,
+             action:"Google Drive Disconnected",
+             status:"Success"
+         })
 
     res.json(
 

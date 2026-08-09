@@ -1,3 +1,4 @@
+import { activitylog } from "../models/ActivityLog.js";
 import { user } from "../models/user.models.js";
 import { Apierror } from "../utils/Apierror.utils.js";
 import { Apiresponse } from "../utils/Apiresponse.utils.js";
@@ -7,72 +8,107 @@ import { Resend } from 'resend';
 
 
  export const adminsignup = asynchandler(async(req,res)=>{
-    const {name,email,password,companyname,industry,team_size} =req.body
+    try {
+        const {name,email,password,companyname,industry,team_size} =req.body
+    
+        if(!name ||!email || !password){
+            throw new Apierror(400,"Something went wrong")
+        }
+    
+        const existinguser = await user.findOne({
+            $or:[{email}]
+        })
+        if(existinguser){
+           throw new Apierror(400,"User already exists")
+        }
+       let orgid = `NGX-${companyname.split(" ")[0]}`
+        const admin = await user.create({
+            name,
+            email,
+            password,
+            professional_details:{
+               company_name:companyname,
+               industry,
+               org_id:orgid,
+               team_size,
+            },
+            role:"Admin"
+        })
 
-    if(!name ||!email || !password){
-        throw new Apierror(400,"Something went wrong")
+        const activity = await activitylog.create({
+            userId:admin._id,
+            action:"Account Created Successfully",
+            status:"Success"
+        })
+    
+        res.status(200)
+        .json(new Apiresponse(200,"Admin signed up successfully",admin))
+    } catch (error) {
+        console.log("Something went wrong in Signing up")
     }
-
-    const existinguser = await user.findOne({
-        $or:[{email}]
-    })
-    if(existinguser){
-       throw new Apierror(400,"User already exists")
-    }
-   let orgid = `NGX-${companyname.split(" ")[0]}`
-    const admin = await user.create({
-        name,
-        email,
-        password,
-        professional_details:{
-           company_name:companyname,
-           industry,
-           org_id:orgid,
-           team_size,
-        },
-        role:"Admin"
-    })
-
-    res.status(200)
-    .json(new Apiresponse(200,"Admin signed up successfully",admin))
 
 })
 
 export const loginAdmin = asynchandler(async(req,res)=>{
-    const{email,password}=req.body
-
-    if(!email || !password){
-        throw new Apierror(400,"Please fill all the necessary field")
-    }
-
-    const loginuser = await user.findOne({
-        $or:[{email}]
-    })
-
-    if(!loginuser){
-        throw new Apierror(404,"Admin not found")
-    }
-
-    const checkpassword = await loginuser.isPasswordcorrect(password)
-    if(!checkpassword){
-        throw new Apierror(401,"Incorrect Password")
-    }
-
-    const token = await loginuser.AccessToken()
-    if(!token){
-        throw new Apierror(400,"Token not generated")
-    }
-
-     const options = {
-    httpOnly:true,
-    secure:true,
-    sameSite:"None",
-    maxAge:9*60*60*1000
-  }
-
-    res.status(200)
-    .cookie("token",token,options)
-    .json(new Apiresponse(200,"Login successfull",loginuser))
+   try {
+     const{email,password}=req.body
+ 
+     if(!email || !password){
+         throw new Apierror(400,"Please fill all the necessary field")
+     }
+ 
+     const loginuser = await user.findOne({
+         $or:[{email}]
+     })
+ 
+     if(!loginuser){
+         throw new Apierror(404,"Admin not found")
+         const activity = await activitylog.create({
+             userId:loginuser._id,
+             action:"Login Failure",
+             status:"Failure"
+         })
+     }
+ 
+     const checkpassword = await loginuser.isPasswordcorrect(password)
+     if(!checkpassword){
+         throw new Apierror(401,"Incorrect Password")
+         const activity = await activitylog.create({
+             userId:loginuser._id,
+             action:"Login Failure",
+             status:"Failure"
+         })
+     }
+ 
+     const token = await loginuser.AccessToken()
+     if(!token){
+         throw new Apierror(400,"Token not generated")
+         const activity = await activitylog.create({
+             userId:loginuser._id,
+             action:"Login Failure",
+             status:"Failure"
+         })
+     }
+ 
+      const options = {
+     httpOnly:true,
+     secure:true,
+     sameSite:"None",
+     maxAge:9*60*60*1000
+   }
+ 
+    const activity = await activitylog.create({
+             userId:loginuser._id,
+             action:"Login Successfull",
+             status:"Success"
+         })
+ 
+     res.status(200)
+     .cookie("token",token,options)
+     .json(new Apiresponse(200,"Login successfull",loginuser))
+   } catch (error) {
+      console.log("Something went wrong")
+   }
     
 })
 
@@ -96,7 +132,18 @@ export const deleteAdmin = asynchandler(async(req,res)=>{
      const loguser = await user.findByIdAndDelete(id)
      if(!loguser){
         throw new Apierror(400,"User not Authorized")
+        const activity = await activitylog.create({
+             userId:loguser._id,
+             action:"Account deletion Failure",
+             status:"Failure"
+         })
      }
+
+      const activity = await activitylog.create({
+            userId:loguser._id,
+            action:"Account Deletion Successfully",
+            status:"Success"
+        })
       res.status(200)
      .json(new Apiresponse(200,"User deleted Successfully",loguser))
 })
@@ -108,6 +155,7 @@ export const logout = asynchandler(async(req,res)=>{
   sameSite:"lax" ,
   maxAge:9*60*60*1000,
 }
+ 
    return  res.status(200)
     .clearCookie("token",options)
     .json(new Apiresponse(200,"User loggedout successfully",{}))
@@ -136,6 +184,11 @@ export const updateAdmin = asynchandler(async (req, res) => {
 
   if (!admin) {
     throw new Apierror(404, "User not found");
+    const activity = await activitylog.create({
+             userId:admin._id,
+             action:"Account Updation Failure",
+             status:"Failure"
+         })
   }
 
   if (name !== undefined) admin.name = name;
@@ -164,12 +217,23 @@ export const updateAdmin = asynchandler(async (req, res) => {
 
   if (!correctpass) {
     throw new Apierror(400, "Wrong current password");
+    const activity = await activitylog.create({
+             userId:admin._id,
+             action:"Account Updation Failure",
+             status:"Failure"
+         })
   }
 
   admin.password = updatepass;
 }
 
   await admin.save();
+
+  const activity = await activitylog.create({
+            userId:admin._id,
+            action:"Account Updated Successfully",
+            status:"Success"
+        })
 
   res.status(200).json(
     new Apiresponse(200, "Profile updated successfully", admin)
@@ -182,16 +246,31 @@ export const addcontact = asynchandler(async(req,res)=>{
 
   if(!admin){
     throw new Apierror(401,"User not Authorized")
+    const activity = await activitylog.create({
+             userId:admin._id,
+             action:"Add contact Failed",
+             status:"Failure"
+         })
   }
 
   if(!name || !email){
     throw new Apiresponse(400,"Please fill all the required fields")
+    const activity = await activitylog.create({
+             userId:admin._id,
+             action:"Add contact Failed",
+             status:"Failure"
+         })
   }
    const existinguser = await user.findOne({
         $or:[{email}]
     })
     if(existinguser){
        throw new Apierror(409,"User already exists")
+       const activity = await activitylog.create({
+             userId:admin._id,
+             action:"Add contact Failed",
+             status:"Failure"
+         })
     }
   const contact1 = await user.create({
     name:name,
@@ -204,6 +283,14 @@ export const addcontact = asynchandler(async(req,res)=>{
     address:address,
     role:"Member"
   })
+
+  const activity = await activitylog.create({
+            userId:admin._id,
+            refId:contact1._id,
+            refModel: "user",
+            action:"Member Added Successfully",
+            status:"Success"
+        })
 
   res.status(200)
   .json(200,"User Added to Contactbook",contact1)
@@ -228,12 +315,22 @@ export const inviteadmin = asynchandler(async(req,res)=>{
 
   if(!admin){
     throw new Apierror(401,"User not Authorized")
+    const activity = await activitylog.create({
+             userId:admin._id,
+             action:"Sub-Admin invite Failed",
+             status:"Failure"
+         })
   }
 
   const admin1 = await user.findById(admin._id)
 
   if(!email || !name){
     throw new Apierror(400,"Please fill all the required fields")
+    const activity = await activitylog.create({
+             userId:admin._id,
+             action:"Sub-Admin invite Failed",
+             status:"Failure"
+         })
   }
 
   const existing = await user.findOne({
@@ -242,6 +339,11 @@ export const inviteadmin = asynchandler(async(req,res)=>{
 
   if(existing){
     throw new Apierror(409,"User already exists with this email")
+    const activity = await activitylog.create({
+             userId:admin._id,
+             action:"Sub-Admin invite Failed",
+             status:"Failure"
+         })
   }
 
   const subadmin = await user.create({
@@ -412,6 +514,14 @@ export const inviteadmin = asynchandler(async(req,res)=>{
 </html>`
       });
 
+      const activity = await activitylog.create({
+            userId:admin._id,
+            refId:subadmin._id,
+            refModel: "user",
+            action:"Sub-Admin Invited Successfully",
+            status:"Success"
+        })
+
       res.status(200)
       .json(new Apiresponse(200,"Invitation sent successfully",subadmin))
 })
@@ -441,6 +551,12 @@ export const declineInvitation = asynchandler(async (req, res) => {
     invitedUser.deleted = true;
 
     await invitedUser.save();
+    //  const activity = await activitylog.create({
+    //         userId:admin._id,
+    //         refId:invitedUser._id,
+    //         action:"Sub-Admin Declined Invitation",
+    //         status:"Success"
+    //     })
 
     return res.send(`
         <h2>Invitation Declined</h2>

@@ -14,5 +14,5 @@ templaterouter.post(
 );
 templaterouter.route("/gettemplate").get(gettemplate)
 templaterouter.get("/template/:id/pdf", getTemplatePdf);
-templaterouter.route("/deletetemplate/:id").delete(deletetemplate)
+templaterouter.route("/deletetemplate/:id").delete(verifyjwt,deletetemplate)
 templaterouter.route("/template/:id").get(getsingletemplate)

@@ -9,6 +9,25 @@ import { asynchandler } from "../utils/Asynchandler.utils.js";
 
 
 
+export const statuschange = asynchandler(async(req,res)=>{
+    const {id} = req.body
+
+    if(!id){
+        throw new Apierror(400,"Please fill all the reuired fields")
+    }
+
+    const request = await signrequest.findById(id)
+
+    if(!request){
+        throw new Apierror(404,"Request not found")
+    }
+
+    request.overallStatus = "Viewed"
+    request.save()
+
+    res.status(200)
+    .json(new Apiresponse(200,"Status changes Successfully",[]))
+})
 
 export const submitdoc = asynchandler(async(req,res)=>{
     const {sign,widget,ip} = req.body;
@@ -22,10 +41,11 @@ export const submitdoc = asynchandler(async(req,res)=>{
         throw new Apierror(400,"No Request Find")
     }
     
-    if(request.status==="completed"){
+    if(request.overallStatus==="completed"){
     throw new Apierror(400,"Already signed");
 }
-    request.status = "completed"
+    request.overallStatus = "completed"
+    request.recipient.signedAt = Date.now()
     await request.save()
 
     const document = await doc.findById(request.documentId)
@@ -42,7 +62,7 @@ export const submitdoc = asynchandler(async(req,res)=>{
     let complete=0
     let incomplete=0
     for(let rs of requests){
-        if(rs.status === "completed"){
+        if(rs.overallStatus === "completed"){
              complete++;
         }else{
           incomplete++;
@@ -51,7 +71,7 @@ export const submitdoc = asynchandler(async(req,res)=>{
 
     const percent = (complete / total)*100;
     if(percent === 100){
-       document.status = "signed"
+       document.status = "completed"
     }else if(percent > 0){
         document.status="partially_signed"
     }else{
@@ -129,7 +149,7 @@ export const disapprove = asynchandler(async(req,res)=>{
         throw new Apierror(400,"No Request Find")
     }
 
-    request.status = "cancelled"
+    request.overallStatus = "cancelled"
     await request.save()
 
     const document = await doc.findById(request.documentId)

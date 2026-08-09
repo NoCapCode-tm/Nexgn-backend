@@ -6,10 +6,12 @@ import { Apierror } from "../utils/Apierror.utils.js";
 import { Apiresponse } from "../utils/Apiresponse.utils.js";
 import { asynchandler } from "../utils/Asynchandler.utils.js";
 import { uploadFileToDrive } from "../utils/uploadfiletodrive.utils.js";
+import { activitylog } from "../models/ActivityLog.js";
 
 
 export const createtemplate = asynchandler(async(req,res)=>{
    const body = req.body || {};
+   const user = req.user
 
 const {
   title,
@@ -21,6 +23,11 @@ const {
 
     if( !role ||!widget || widget.length === 0){
         throw new Apierror(400,"Please fill all the required fields")
+         const activity = await activitylog.create({
+             userId:user._id,
+             action:"Template Creation Failed",
+             status:"Failure"
+         })
     }
 
     let temple;
@@ -50,6 +57,14 @@ const {
         templateid:temple._id,
         widget:widget1
     })
+
+    const activity = await activitylog.create({
+             userId:user._id,
+             refId:temple._id,
+             refModel: "template",
+             action:"Template Created Successfully",
+             status:"Success"
+         })
 
     res.status(200)
     .json(new Apiresponse(200,"Template created Successfully",temple))
@@ -142,12 +157,27 @@ export const getTemplatePdf = async (req, res) => {
 
 export const deletetemplate = asynchandler(async(req,res)=>{
     const {id}= req.params
+    const user = req.user
 
     if(!id){
         throw new Apierror(400,"Id not Found")
+        const activity = await activitylog.create({
+             userId:user._id,
+             refId:id,
+             refModel: "template",
+             action:"Template Deletion Failed",
+             status:"Failure"
+         })
     }
 
     await template.findByIdAndDelete(id)
+    const activity = await activitylog.create({
+             userId:user._id,
+             refId:id,
+             refModel: "template",
+             action:"Template Deleted Successfully",
+             status:"Success"
+         })
 
     res.status(200)
     .json(new Apiresponse(200,"Template Deleted Successfully",[]))

@@ -4,15 +4,25 @@ const ActivityLogSchema = new mongoose.Schema({
 
     userId:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"User"
+        ref:"user"
     },
 
-    documentId:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"Document"
-    },
+     refId: {
+    type: mongoose.Schema.Types.ObjectId,
+    refPath: "refModel",
+    default: null,
+  },
+
+  refModel: {
+    type: String,
+    enum: ["doc", "template", "user"],
+    default: null,
+  },
 
     action:String,
+    status:{
+        type:String
+    }
 
 },{timestamps:true});
 

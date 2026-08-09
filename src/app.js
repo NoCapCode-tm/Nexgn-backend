@@ -42,6 +42,7 @@ import { adminrouter } from "./routes/auth.routes.js"
 import { templaterouter } from "./routes/template.routes.js"
 import { signrouter } from "./routes/signed.routes.js"
 import { documentrouter } from "./routes/document.routes.js"
+import { activityrouter } from "./routes/Activitylog.routes.js";
 app.use(
   "/api/v1/google",
   googleRoutes
@@ -51,6 +52,7 @@ app.use("/api/v1/admin",adminrouter)
 app.use("/api/v1/template",templaterouter)
 app.use("/api/v1/document",documentrouter)
 app.use("/api/v1/sign",signrouter)
+app.use("/api/v1/activity",activityrouter)
 
 
 export default app;
