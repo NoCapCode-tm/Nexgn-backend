@@ -6,10 +6,12 @@ import cors from "cors"
 const app = express()
 
 const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "http://localhost:5175",
-  "https://prod.nexgn.cloud"
+  // "http://localhost:5173",
+  // "http://localhost:5174",
+  // "http://localhost:5175",
+  "https://prod.nexgn.cloud",
+  "https://sign.nexgn.cloud"
+
 
 ];
 
