@@ -1,4 +1,5 @@
 import { activitylog } from "../models/ActivityLog.js";
+import { notified } from "../models/notified.models.js";
 import { user } from "../models/user.models.js";
 import { Apierror } from "../utils/Apierror.utils.js";
 import { Apiresponse } from "../utils/Apiresponse.utils.js";
@@ -587,4 +588,38 @@ export const setpass = asynchandler(async(req,res)=>{
 
     res.status(200)
     .json(new Apiresponse(200,"Password set successfully",subad))
+})
+
+
+export const notified0 = asynchandler(async(req,res)=>{
+    const{name,email,interest} = req.body
+    if(!name || !email){
+        throw new Apierror(400,"Please fill all the required fields")
+    }
+
+    const notified1 = await notified.create({
+        name,
+        email,
+        interest
+    })
+
+    if(!notified1){
+        throw new Apierror(404,"Notified not found")
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+          const response =  await resend.emails.send({
+        from: `Nexgn <${process.env.SMTP_USER}>`,
+        to: email,
+        subject:`Your Nexgn workspace is now live.`,
+        html:`
+        Notified template here
+        `
+      });
+
+      res.status(200)
+      .json(new Apiresponse(200,"Notification saved successfully",notified1))
+
+
+
 })
