@@ -9,7 +9,10 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:5175",
-  "https://prod.nexgn.cloud"
+  "https://prod.nexgn.cloud",
+  "https://sign.nexgn.cloud",
+  "https://nexgn.cloud"
+
 
 ];
 
