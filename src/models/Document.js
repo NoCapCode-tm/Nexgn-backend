@@ -33,6 +33,9 @@ const DocumentSchema = new mongoose.Schema({
         ref:"user",
         required:true
     },
+     note:{
+      type:String,
+   },
 
     status:{
         type:String,

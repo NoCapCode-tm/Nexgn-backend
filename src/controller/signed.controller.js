@@ -30,9 +30,9 @@ export const statuschange = asynchandler(async(req,res)=>{
 })
 
 export const submitdoc = asynchandler(async(req,res)=>{
-    const {sign,widget,ip} = req.body;
+    const {sign,widget,ipv4,ipv6} = req.body;
 
-    if(!sign || !ip || !widget){
+    if(!sign || !ipv4 || !ipv6 || !widget){
         throw new Apierror(400,"Please fill all the required fields")
     }
 
@@ -80,7 +80,8 @@ export const submitdoc = asynchandler(async(req,res)=>{
     await document.save();
 
     const signed = await signature.create({
-        ip :req.ip,
+        ipv4,
+        ipv6,
         widget,
         requestId:sign
     })

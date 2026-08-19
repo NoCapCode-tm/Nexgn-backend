@@ -11,10 +11,10 @@ import { activitylog } from "../models/ActivityLog.js";
 
 
 export const createdocument = asynchandler(async(req,res)=>{
-    const { title, drivefileid , templateid , applicants , documentwidgets ,expiry} = req.body
+    const { title, drivefileid , templateid , applicants , documentwidgets ,expiry ,note,senderip} = req.body
 
 
-  if(!title || !applicants){
+  if(!title || !applicants ||!senderip){
         throw new Apierror(400,"Please fill all the required fields")
          const activity = await activitylog.create({
              userId:req.user._id,
@@ -30,7 +30,8 @@ export const createdocument = asynchandler(async(req,res)=>{
               driveFileId:drivefileid,
               createdBy:req.user._id,
               status:"draft",
-              assignedto:applicants
+              assignedto:applicants,
+              note:note,
            })
 
            const docwidget = await documentfield.create({
@@ -44,7 +45,8 @@ export const createdocument = asynchandler(async(req,res)=>{
               templateId:templateid,
               createdBy:req.user._id,
               status:"draft",
-              assignedto:applicants
+              assignedto:applicants,
+              note:note
            })
         }
        
@@ -67,6 +69,7 @@ export const createdocument = asynchandler(async(req,res)=>{
     const signature = await signrequest.create({
         documentId: document._id,
         senderId: document.createdBy,
+        senderip:senderip,
         expiresat: expiry,
         recipient: {
             userId: member._id
@@ -75,10 +78,11 @@ export const createdocument = asynchandler(async(req,res)=>{
     });
 
     const resend = new Resend(process.env.RESEND_API_KEY);
-
+    
+    
     await resend.emails.send({
         from: `Nexgn <${process.env.SMTP_USER}>`,
-        to: [member.email],
+        to: signee.email,
         subject: "Your DOC is Ready to be Signed",
         html: `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
@@ -218,7 +222,7 @@ export const createdocument = asynchandler(async(req,res)=>{
                 <h1 class="headline">Welcome to Nexgn</h1>
 
                 <p class="body-text">
-                  Hi ${member.name},
+                  Hi ${signee.name},
                 </p>
 
                 <p class="body-text">
@@ -230,7 +234,7 @@ export const createdocument = asynchandler(async(req,res)=>{
                 </p>
 
                 <div class="cta-wrap">
-                  <a class="cta" href="http://localhost:5173/document/${signature._id}" target="_blank">Sign Doc</a>
+                  <a class="cta" href="https://sign.nexgn.cloud/document/${signature._id}" target="_blank">Sign Doc</a>
                 </div>
 
                 <div class="divider"></div>

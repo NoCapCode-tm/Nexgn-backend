@@ -11,6 +11,9 @@ const SignatureRequestSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:"user"
     },
+    senderip:{
+        type:String,
+    },
     expiresat:{
         type:Date
     },

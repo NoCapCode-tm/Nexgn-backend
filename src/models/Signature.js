@@ -7,10 +7,12 @@ const SignatureSchema = new mongoose.Schema({
         ref:"SignatureRequest"
     },
 
-    ip:{
+    ipv4:{
         type:String
     },
-
+    ipv6:{
+        type:String
+    },
      widget:[{
      widgetname:{
     type:String,
