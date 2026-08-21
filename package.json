@@ -7,12 +7,13 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon --exec tsx src/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@react-email/components": "^1.0.12",
     "bcrypt": "^6.0.0",
     "brace-expansion": "^5.0.6",
     "cookie-parser": "^1.4.7",
@@ -24,6 +25,10 @@
     "mongoose": "^9.7.1",
     "multer": "^2.2.0",
     "nodemon": "^3.1.14",
+    "react-email": "^6.9.2",
     "resend": "^6.18.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.12"
   }
 }

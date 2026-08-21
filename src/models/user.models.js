@@ -69,7 +69,7 @@ const UserSchema = mongoose.Schema({
         type:Boolean,
         default:false
     },
-    invitestatus:{
+    status:{
         type:String,
         enum:["Active","Not-Active","Declined"],
         default:"Not-Active"
