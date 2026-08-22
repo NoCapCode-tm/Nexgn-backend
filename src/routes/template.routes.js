@@ -12,7 +12,7 @@ templaterouter.post(
   upload.single("file"),
   createtemplate
 );
-templaterouter.route("/gettemplate").get(gettemplate)
+templaterouter.route("/gettemplate").get(verifyjwt,gettemplate)
 templaterouter.get("/template/:id/pdf", getTemplatePdf);
 templaterouter.route("/deletetemplate/:id").delete(verifyjwt,deletetemplate)
 templaterouter.route("/template/:id").get(getsingletemplate)

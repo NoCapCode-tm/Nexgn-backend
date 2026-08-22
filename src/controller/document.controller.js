@@ -53,7 +53,7 @@ export const createdocument = asynchandler(async(req,res)=>{
         
         const tasks = applicants.map(async (signee) => {
 
-    let member = await user.find({
+    let member = await user.findOne({
         email: signee.email
     });
 
@@ -62,6 +62,7 @@ export const createdocument = asynchandler(async(req,res)=>{
             name: signee.name,
             email: signee.email,
             role: "Member",
+            addedby:req.user._id,
             password: `Nexgn-${signee.name}-${signee.email}`
         });
     }
@@ -283,6 +284,8 @@ await Promise.all(tasks);
 })
 
 export const getdocument = asynchandler(async(req,res)=>{
+  const admin = req.user 
+
     const documents = await doc.find()
   .populate("createdBy")
   .populate("templateId");
@@ -291,8 +294,13 @@ export const getdocument = asynchandler(async(req,res)=>{
       throw new Apierror(404,"No Template Found")
     }
 
+    const filtereddoc = documents.filter(
+  (d) => d.createdBy?._id?.toString() === admin._id.toString()
+);
+
+
     res.status(200)
-    .json(new Apiresponse(200,"Templates Fetched Successfully",documents))
+    .json(new Apiresponse(200,"Documents Fetched Successfully",filtereddoc))
 })
 
 export const deletedocument = asynchandler(async(req,res)=>{

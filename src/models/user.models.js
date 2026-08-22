@@ -73,6 +73,10 @@ const UserSchema = mongoose.Schema({
         type:String,
         enum:["Active","Not-Active","Declined"],
         default:"Not-Active"
+    },
+    addedby:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"user",
     }
 },{timestamps:true})
 

@@ -8,7 +8,7 @@ import { getdocumentwidgets } from "../controller/signed.controller.js";
 export const documentrouter = Router();
 
 documentrouter.route("/create").post(verifyjwt,createdocument)
-documentrouter.route("/getdocument").get(getdocument)
+documentrouter.route("/getdocument").get(verifyjwt,getdocument)
 documentrouter.route("/widgets/:id").get(getdocumentwidgets)
 documentrouter.route("/deletedocument/:id").delete(verifyjwt,deletedocument)
 documentrouter.route("/document/:id").get(getsingledocument)

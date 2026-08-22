@@ -71,22 +71,38 @@ const {
 
 })
 
-export const gettemplate = asynchandler(async(req,res)=>{
-    const temple = await templatewidget.find().populate({
-    path: "templateid",
-    populate: {
-      path: "createdby",
-      select: "name", // choose the fields you want
-    },
-  })
+export const gettemplate = asynchandler(async (req, res) => {
 
-    if(!temple){
-      throw new Apierror(404,"No Template Found")
-    }
+  const admin = req.user;
 
-    res.status(200)
-    .json(new Apiresponse(200,"Templates Fetched Successfully",temple))
-})
+  if (!admin) {
+    throw new Apierror(401, "User not authorized");
+  }
+
+  const templates = await templatewidget
+    .find()
+    .populate({
+      path: "templateid",
+      populate: {
+        path: "createdby",
+        select: "_id name",
+      },
+    });
+
+  const filteredtemp = templates.filter(
+    (d) =>
+      d.templateid?.createdby?._id?.toString() ===
+      admin._id.toString()
+  );
+
+  return res.status(200).json(
+    new Apiresponse(
+      200,
+      "Templates Fetched Successfully",
+      filteredtemp
+    )
+  );
+});
 
 export const getTemplatePdf = async (req, res) => {
   try {

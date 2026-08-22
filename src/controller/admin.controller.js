@@ -48,7 +48,7 @@ import { Resend } from 'resend';
         const resend = new Resend(process.env.RESEND_API_KEY);
         const html = await renderVerifyEmail({
     recipientName: admin.name,
-    verifyUrl: "https://sign.nexgn.cloud/",
+    verifyUrl: `http://localhost:5173/verify/${admin._id}`,
     createdAt: admin.createdAt
 });
 
@@ -186,7 +186,8 @@ export const updateAdmin = asynchandler(async (req, res) => {
     teamsize,
     address,
     emergency,
-    gender
+    gender,
+    status
   } = req.body;
 
   const admin = await user.findById(id);
@@ -218,6 +219,7 @@ export const updateAdmin = asynchandler(async (req, res) => {
   if(address !== undefined) admin.address = address;
   if(emergency !==undefined) admin.emergency_contact = emergency;
   if(gender !==undefined) admin.gender = gender;
+  if(status !== undefined) admin.status = status
   if (
   currentpass?.trim() &&
   updatepass?.trim()
@@ -290,7 +292,8 @@ export const addcontact = asynchandler(async(req,res)=>{
     job_title:job,
     langiage:language,
     address:address,
-    role:"Member"
+    role:"Member",
+    addedby:admin._id
   })
 
   const activity = await activitylog.create({
@@ -307,11 +310,13 @@ export const addcontact = asynchandler(async(req,res)=>{
 })
 
 export const getuser = asynchandler(async(req,res)=>{
-  const getuser = await user.find()
+    const admin = req.user
+  const getuser = await user.find({addedby:admin._id})
 
   if(!getuser){
     throw new Apierror(400,"User not found")
   }
+//   const filtereduser = getuser.filter((g)=>g.addedby === admin._id)
 
   res.status(200)
   .json(new Apiresponse(200,"User fetched Successfully",getuser))
@@ -358,7 +363,8 @@ export const inviteadmin = asynchandler(async(req,res)=>{
   const subadmin = await user.create({
     name,
     email,
-    role:"Sub-Admin"
+    role:"Sub-Admin",
+    addedby:admin1._id
   })
 
   const resend = new Resend(process.env.RESEND_API_KEY);
@@ -390,9 +396,8 @@ const response = await resend.emails.send({
 })
 
 export const getsubadmin = asynchandler(async(req,res)=>{
-  const users = await user.find()
-
-  const subadmin = users.filter((s)=>s.role === "Sub-Admin")
+  const admin = req.user
+  const subadmin = await user.find({role:"Sub-Admin",addedby:admin._id})
 
   res.status(200)
   .json(new Apiresponse(200,"Sub admin fetched successfully",subadmin))
@@ -497,7 +502,7 @@ export const resetpassword = asynchandler(async(req,res)=>{
      const resend = new Resend(process.env.RESEND_API_KEY);
 
 const html = await renderResetPasswordEmail({
-    resetUrl: "https://sign.nexgn.cloud/",
+    resetUrl: "http://localhost:5173/",
     createdAt: clicked
 });
 
@@ -507,5 +512,23 @@ await resend.emails.send({
     subject: "Reset your Nexgn password",
     html
 });
+
+})
+
+export const changestatus = asynchandler(async(req,res)=>{
+    const {id ,status} = req.body
+
+    if(!id || !status){
+        throw new Apierror(400,"Please fill all the required fields")
+    }
+
+    const admin1 = await user.findById(id)
+
+
+    admin1.status = status
+    admin1.save()
+
+    res.status(200)
+    .json(new Apiresponse(200,"Status changed successfully",admin1))
 
 })
