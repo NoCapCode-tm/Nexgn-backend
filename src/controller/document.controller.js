@@ -235,7 +235,7 @@ export const createdocument = asynchandler(async(req,res)=>{
                 </p>
 
                 <div class="cta-wrap">
-                  <a class="cta" href="https://sign.nexgn.cloud/document/${signature._id}" target="_blank">Sign Doc</a>
+                  <a class="cta" href="http://localhost:5173/document/${signature._id}" target="_blank">Sign Doc</a>
                 </div>
 
                 <div class="divider"></div>

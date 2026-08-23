@@ -5,6 +5,7 @@ import SubAdminInviteEmail from "./InviteMail.jsx";
 import WaitlistConfirmationEmail from "./Notified.jsx";
 import ResetPasswordEmail from "./ResetPassword.jsx";
 import VerifyEmail from "./E-Verification.jsx";
+import DocumentSignedEmail from "./Doc-Signed.jsx";
 
 export const renderSubAdminInviteEmail = async (props) => {
     return await render(
@@ -15,6 +16,11 @@ export const renderSubAdminInviteEmail = async (props) => {
 export const renderWaitlistEmail = async (props) => {
     return await render(
         React.createElement(WaitlistConfirmationEmail, props)
+    );
+};
+export const renderSignature = async (props) => {
+    return await render(
+        React.createElement(DocumentSignedEmail, props)
     );
 };
 

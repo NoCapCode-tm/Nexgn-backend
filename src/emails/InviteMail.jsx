@@ -194,8 +194,8 @@ export default function SubAdminInviteEmail({
   organizationName ,
   email,
 }) {
-  let acceptUrl = `https://prod.nexgn.cloud/mail-invite/${email}`
-  let denyUrl = `https://prod.nexgn.cloud/api/v1/admin/decline/${email}`
+  let acceptUrl = `${process.env.FRONTEND_URI}/mail-invite/${email}`
+  let denyUrl =   `https://nexgn-backend.onrender.com/api/v1/admin/decline/${email}`
   return (
     <Html>
       <Head>

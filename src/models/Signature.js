@@ -6,6 +6,11 @@ const SignatureSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:"SignatureRequest"
     },
+     certificateId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Certificate",
+      default: null,
+    },
 
     ipv4:{
         type:String

@@ -48,7 +48,7 @@ import { Resend } from 'resend';
         const resend = new Resend(process.env.RESEND_API_KEY);
         const html = await renderVerifyEmail({
     recipientName: admin.name,
-    verifyUrl: `http://localhost:5173/verify/${admin._id}`,
+    verifyUrl: `${process.env.FRONTEND_URI}/verify/${admin._id}`,
     createdAt: admin.createdAt
 });
 
@@ -395,13 +395,49 @@ const response = await resend.emails.send({
       .json(new Apiresponse(200,"Invitation sent successfully",subadmin))
 })
 
-export const getsubadmin = asynchandler(async(req,res)=>{
-  const admin = req.user
-  const subadmin = await user.find({role:"Sub-Admin",addedby:admin._id})
+export const getsubadmin = asynchandler(async (req, res) => {
+  const admin = req.user;
 
-  res.status(200)
-  .json(new Apiresponse(200,"Sub admin fetched successfully",subadmin))
-})
+  let team = [];
+
+  const superadmin = await user.findById(admin._id);
+
+  if (!superadmin) {
+    return res
+      .status(404)
+      .json(new Apiresponse(404, "User not found", []));
+  }
+
+  if (superadmin.role === "Sub-Admin") {
+    const addedby = await user.findById(superadmin.addedby);
+
+    const added = await user.find({
+      addedby: superadmin.addedby,
+      role: "Sub-Admin",
+    });
+
+    if (addedby) {
+      team.push(addedby);
+    }
+
+    team.push(...added);
+  } else {
+    const added1 = await user.find({
+      addedby: admin._id,
+      role: "Sub-Admin",
+    });
+
+    team.push(...added1);
+  }
+
+  res.status(200).json(
+    new Apiresponse(
+      200,
+      "Teammates fetched successfully",
+      team
+    )
+  );
+});
 
 export const declineInvitation = asynchandler(async (req, res) => {
 
@@ -415,7 +451,7 @@ export const declineInvitation = asynchandler(async (req, res) => {
         throw new Apierror(404, "User not found");
     }
 
-    invitedUser.invitestatus = "Declined";
+    invitedUser.status = "Declined";
     invitedUser.deleted = true;
 
     await invitedUser.save();
@@ -449,7 +485,7 @@ export const setpass = asynchandler(async(req,res)=>{
     }
 
     subad.password = password
-    subad.invitestatus = "Active"
+    subad.status = "Active"
 
     subad.save()
 
@@ -499,10 +535,16 @@ export const resetpassword = asynchandler(async(req,res)=>{
     const clicked = Date.now();
     const {email} = req.body
 
+    const loginuser = await user.findOne({email:email})
+
+    if(!loginuser){
+       throw new Apierror(404,"User not found")
+    }
+
      const resend = new Resend(process.env.RESEND_API_KEY);
 
 const html = await renderResetPasswordEmail({
-    resetUrl: "http://localhost:5173/",
+    resetUrl: `${process.env.FRONTEND_URI}/reset/${loginuser._id}`,
     createdAt: clicked
 });
 
@@ -512,6 +554,9 @@ await resend.emails.send({
     subject: "Reset your Nexgn password",
     html
 });
+
+res.status(200)
+.json(new Apiresponse(200,"Reset link sent successfully",[]))
 
 })
 
@@ -531,4 +576,22 @@ export const changestatus = asynchandler(async(req,res)=>{
     res.status(200)
     .json(new Apiresponse(200,"Status changed successfully",admin1))
 
+})
+
+export const resetpass = asynchandler(async(req,res)=>{
+    const {id,password} = req.body
+    if(!id){
+        throw new Apierror(400,"Please fill all the required fields")
+    }
+
+    const loginuser = await user.findById(id)
+    if(!loginuser){
+        throw new Apierror(404,"User not found")
+    }
+
+    loginuser.password = password
+    loginuser.save()
+
+    res.status(200)
+    .json(new Apiresponse(200,"Password changed Successfully",loginuser))
 })
