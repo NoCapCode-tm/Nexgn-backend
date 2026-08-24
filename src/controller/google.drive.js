@@ -66,7 +66,7 @@ const { tokens } = await oauth2client.getToken(code);
   }
     
         res.status(200)
-        .redirect("http://localhost:5174/settings?drive=connected");
+        .redirect("https://sign.nexgn.cloud/settings?drive=connected");
     } catch (error) {
         console.log("Something went wrong",error.message)
     }
