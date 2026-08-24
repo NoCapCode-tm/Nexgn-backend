@@ -30,7 +30,7 @@ const HEART_ICON = `${ASSET_URL}/stamp.png`;
 const LINKEDIN_ICON = `${ASSET_URL}/linkedin.png`;
 const SECOND_SOCIAL_ICON = `${ASSET_URL}/instagram.png`;
 const SECOND_SOCIAL_URL = "https://instagram.com/nexgn";
-const RESET_CTA_IMG = `${ASSET_URL}/a.png`; // <-- confirm/replace filename
+const RESET_CTA_IMG = `${ASSET_URL}/e.png`; // <-- confirm/replace filename
 
 const COLORS = {
   red: "#FF0915",
@@ -73,7 +73,6 @@ export default function ResetPasswordEmail({
             .legal-block { text-align: left !important; }
             .drop-cap-col { width: 56px !important; }
             .drop-cap-img { width: 56px !important; height: 120px !important; }
-            .cta-image-mobile {margin-top: -120px !important;}
           }
         `}</style>
       </Head>
@@ -126,7 +125,6 @@ export default function ResetPasswordEmail({
                 height="196"
                 alt={`Reset My Password — link expires in ${expiresInMinutes} minutes`}
                 style={styles.ctaGraphic}
-                className="cta-image-mobile"
               />
             </Link>
           </Section>
@@ -320,7 +318,7 @@ const styles = {
     fontSize: "15px",
     lineHeight: "24px",
     margin: 0,
-    maxWidth: "265px",
+    maxWidth: "400px",
   },
   expiresLabel: {
     color: COLORS.dark,
@@ -333,7 +331,6 @@ const styles = {
     width: "100%",
     maxWidth: "586px",
     height: "auto",
-    marginTop: "-180px",
   },
   dropCapCol: {
     width: 88,
