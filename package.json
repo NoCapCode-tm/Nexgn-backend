@@ -26,6 +26,8 @@
     "multer": "^2.2.0",
     "nodemon": "^3.1.14",
     "puppeteer": "^25.8.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "react-email": "^6.9.2",
     "resend": "^6.18.0"
   },
