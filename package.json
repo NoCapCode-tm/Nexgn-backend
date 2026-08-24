@@ -7,7 +7,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "tsx src/index.js",
-    "dev": "nodemon --exec tsx src/index.js"
+    "dev": "nodemon --exec tsx src/index.js",
+    "postinstall": "puppeteer browsers install chrome"
   },
   "keywords": [],
   "author": "",
