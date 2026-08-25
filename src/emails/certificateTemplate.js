@@ -195,7 +195,7 @@ body {
   }
 
   .data-grid {
-    grid-template-columns: 140px 10px 1fr;
+    grid-template-columns: 200px 10px 1fr;
     padding-left: 0;
   }
 
