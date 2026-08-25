@@ -48,7 +48,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 40px;
+  margin-bottom: 20px;
 }
 
 .brand-container {
@@ -70,7 +70,7 @@ body {
 
 .title-section {
   text-align: center;
-  margin-bottom: 50px;
+  margin-bottom: 30px;
 }
 
 .title-section h2 {
@@ -87,7 +87,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 15px;
+  gap: 10px;
 }
 
 .title-divider::before,
@@ -113,7 +113,7 @@ body {
 .section-title {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
   color: #cc0000;
   margin-bottom: 25px;
 }
@@ -136,7 +136,7 @@ body {
 .data-grid {
   display: grid;
   grid-template-columns: 180px 20px 1fr;
-  row-gap: 16px;
+  row-gap: 10px;
   font-size: 14px;
   color: #1a1a1a;
   padding-left: 34px;
