@@ -107,7 +107,7 @@ body {
 }
 
 .section {
-  margin-bottom: 30px;
+  margin-bottom: 15px;
 }
 
 .section-title {
@@ -115,7 +115,7 @@ body {
   align-items: center;
   gap: 5px;
   color: #cc0000;
-  margin-bottom: 25px;
+  margin-bottom: 15px;
 }
 
 .section-title svg {
