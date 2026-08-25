@@ -17,11 +17,11 @@ import {
 } from "@react-email/components";
 
 /**
- * SubAdminInviteEmail.jsx
+ * PaymentConfirmedEmail.jsx
  * ---------------------------------------------------------------------------
- * Self-contained. Accept/Deny here are real coded buttons (not a flattened
- * image) — text is crisp/selectable, not part of a graphic. Footer uses
- * LinkedIn + Instagram.
+ * Self-contained. Transaction details card (2x2 grid) + a real coded
+ * "Download Invoice PDF" button with a small download-icon image inline.
+ * Footer uses LinkedIn + Instagram.
  * ---------------------------------------------------------------------------
  */
 
@@ -29,6 +29,7 @@ const ASSET_URL = "https://prod.nexgn.cloud/template";
 const HEART_ICON = `${ASSET_URL}/stamp.png`;
 const LINKEDIN_ICON = `${ASSET_URL}/linkedin.png`;
 const INSTAGRAM_ICON = `${ASSET_URL}/instagram.png`;
+const DOWNLOAD_ICON = `${ASSET_URL}/download.png`;
 
 const SOCIAL_LINKS = [
   { href: "https://linkedin.com/company/nexgncloud", icon: LINKEDIN_ICON, alt: "LinkedIn" },
@@ -36,7 +37,7 @@ const SOCIAL_LINKS = [
 ];
 
 const COLORS = {
-  red: "#FF0915",
+  red: "#F03A2E",
   redSoft: "#EF6E63",
   dark: "#1A1A1A",
   gray: "#6B7280",
@@ -62,12 +63,13 @@ const emailHeadCss = `
   table { border-collapse: collapse; }
   img { -ms-interpolation-mode: bicubic; }
 
-  .px { padding-left: ${PX_DESKTOP}; padding-right: ${PX_DESKTOP}; }
+    .px { padding-left: ${PX_DESKTOP}; padding-right: ${PX_DESKTOP}; }
 
-  @media only screen and (max-width: 600px) {
+@media only screen and (max-width: 600px) {
     .container { width: 100% !important; }
     .px { padding-left: ${PX_MOBILE} !important; padding-right: ${PX_MOBILE} !important; }
     .headline { font-size: 26px !important; line-height: 36px !important; }
+    .stack-col { display: block !important; width: 100% !important; }
     .wordmark-col { text-align: center !important; padding-bottom: 24px !important; }
     .trust-row { width: 100% !important; }
     .legal-block { text-align: left !important; }
@@ -81,7 +83,7 @@ const styles = {
   container: { maxWidth: "600px", margin: "0 auto", padding: "44px 0" },
   headline: {
     color: COLORS.red,
-    fontSize: "42px",
+    fontSize: "40px",
     lineHeight: "44px",
     fontWeight: 800,
     letterSpacing: "-0.5px",
@@ -93,9 +95,29 @@ const styles = {
     fontSize: "15px",
     lineHeight: "24px",
     margin: 0,
-    maxWidth: "420px",
+    maxWidth: "380px",
   },
-  acceptButton: {
+  detailsCard: {
+    backgroundColor: "#FBEAE7",
+    borderRadius: "10px",
+    padding: "24px",
+  },
+  detailsLabel: {
+    fontFamily: BODY_FONT,
+    color: COLORS.gray,
+    fontSize: "11px",
+    fontWeight: 600,
+    letterSpacing: "0.5px",
+    margin: "0 0 4px 0",
+  },
+  detailsValue: {
+    fontFamily: BODY_FONT,
+    color: COLORS.dark,
+    fontSize: "15px",
+    fontWeight: 700,
+    margin: 0,
+  },
+  downloadButton: {
     backgroundColor: COLORS.red,
     color: "#ffffff",
     fontFamily: BODY_FONT,
@@ -103,19 +125,7 @@ const styles = {
     fontWeight: 700,
     textDecoration: "none",
     borderRadius: "8px",
-    padding: "10px 32px",
-    display: "inline-block",
-  },
-  denyButton: {
-    backgroundColor: "#ffffff",
-    color: COLORS.red,
-    fontFamily: BODY_FONT,
-    fontSize: "15px",
-    fontWeight: 700,
-    textDecoration: "none",
-    borderRadius: "8px",
-    border: `1.5px solid ${COLORS.red}`,
-    padding: "8.5px 30.5px", // 1.5px less than acceptButton's padding to offset its border and keep both buttons the same visual height/width
+    padding: "15px 28px",
     display: "inline-block",
   },
   dropCapCol: { width: 88, verticalAlign: "top" },
@@ -195,12 +205,13 @@ function TrustBadge({ icon, label, divider }) {
   );
 }
 
-export default function SubAdminInviteEmail({
-  recipientName = "there",
-  inviterFirstName = "A teammate",
-  organizationName = "their workspace",
-  acceptUrl = "",
-  denyUrl = "",
+export default function PaymentConfirmedEmail({
+  planName = "Pro",
+  transactionId = "TXN-2026-0708-4921",
+  date = "July 8, 2026",
+  paymentMethod = "Visa •••• 4821",
+  status = "Paid",
+  invoiceUrl = "https://app.nexgn.com/invoices/TXN-2026-0708-4921.pdf",
 }) {
   return (
     <Html>
@@ -208,14 +219,14 @@ export default function SubAdminInviteEmail({
         <style>{emailHeadCss}</style>
       </Head>
       <Preview>
-        {inviterFirstName} invited you to join {organizationName} as a
-        sub-admin on Nexgn.
+        Your nexgn {planName} subscription is now active — invoice{" "}
+        {transactionId}.
       </Preview>
 
       <Body style={{ ...styles.main, fontFamily: BODY_FONT }}>
         <Container style={styles.container} className="container">
           {/* ---------------- Logo ---------------- */}
-          <Section style={{ textAlign: "center", marginBottom: 36, marginTop: 20 }} className="px">
+          <Section style={{ textAlign: "center", marginBottom: 36 }} className="px">
             <Img
               src={`${ASSET_URL}/logo.png`}
               width="40"
@@ -232,38 +243,68 @@ export default function SubAdminInviteEmail({
               style={{ ...styles.headline, fontFamily: HEADING_FONT }}
               className="headline"
             >
-              The stage is set, {recipientName}.
+              Payment Confirmed.
             </Heading>
             <Text style={styles.bodyText}>
-              Your workspace is officially live. {inviterFirstName} just
-              tagged you in to join {organizationName} as a sub-admin on
-              Nexgn.
-            </Text>
-            <Text style={{ ...styles.bodyText, marginTop: 2 }}>
-              Your pending request is waiting. Hit the button below to
-              securely sign in.
+              Thank you for your purchase. Your nexgn {planName} subscription
+              is now active.
             </Text>
           </Section>
 
-          {/* ---------------- Accept / Deny ---------------- *
-              Real coded buttons (not baked into an image) — the text is
-              crisp/selectable, unlike the ring+CTA graphics in the other
-              templates, so this is genuine HTML/CSS. Deny is now a
-              bordered outline button matching Accept's size/radius. */}
-          <Section style={{ marginTop: 24 }} className="px">
-            <Row>
-              <Column style={{ width: "1%", whiteSpace: "nowrap" }}>
-                <Button href={acceptUrl} style={styles.acceptButton}>
-                  Accept
-                </Button>
-              </Column>
-              <Column style={{ width: "1%", whiteSpace: "nowrap", paddingLeft: 12 }}>
-                <Button href={denyUrl} style={styles.denyButton}>
-                  Deny
-                </Button>
-              </Column>
-              <Column>&nbsp;</Column>
-            </Row>
+          {/* ---------------- Transaction details card ---------------- */}
+          <Section style={{ marginTop: 28 }} className="px">
+            <Section style={styles.detailsCard}>
+              <Row>
+                <Column className="stack-col">
+                  <Text style={styles.detailsLabel}>TRANSACTION ID</Text>
+                  <Text style={styles.detailsValue}>{transactionId}</Text>
+                </Column>
+                <Column
+                  align="right"
+                  style={{ textAlign: "right" }}
+                  className="stack-col"
+                >
+                  <Text style={styles.detailsLabel}>DATE</Text>
+                  <Text style={styles.detailsValue}>{date}</Text>
+                </Column>
+              </Row>
+              <Row>
+                <Column style={{ paddingTop: 20 }} className="stack-col">
+                  <Text style={styles.detailsLabel}>PAYMENT METHOD</Text>
+                  <Text style={styles.detailsValue}>{paymentMethod}</Text>
+                </Column>
+                <Column
+                  align="right"
+                  style={{ textAlign: "right", paddingTop: 20 }}
+                  className="stack-col"
+                >
+                  <Text style={styles.detailsLabel}>STATUS</Text>
+                  <Text style={{ ...styles.detailsValue, color: COLORS.red }}>
+                    {status}
+                  </Text>
+                </Column>
+              </Row>
+            </Section>
+          </Section>
+
+          {/* ---------------- Download Invoice PDF ---------------- *
+              Real coded button (crisp/selectable text) with a small
+              download-icon image inline before the label. */}
+          <Section style={{ marginTop: 28, textAlign: "center" }} className="px">
+            <Button href={invoiceUrl} style={styles.downloadButton}>
+              <Img
+                src={DOWNLOAD_ICON}
+                width="16"
+                height="16"
+                alt=""
+                style={{
+                  display: "inline-block",
+                  verticalAlign: "middle",
+                  marginRight: 8,
+                }}
+              />
+              Download Invoice PDF
+            </Button>
           </Section>
 
           {/* ---------------- Testimonial / drop-cap ---------------- */}
@@ -372,8 +413,8 @@ export default function SubAdminInviteEmail({
             {/* Setting a fixed width and margin auto centers the icons side-by-side */}
             <Row style={{ width: `${SOCIAL_LINKS.length * 34}px`, margin: "0 auto", marginBottom: "16px" }}>
               {SOCIAL_LINKS.map((social, i) => (
-                <Column
-                  align="center"
+                <Column 
+                  align="center" 
                   key={social.alt}
                   style={{ paddingRight: i < SOCIAL_LINKS.length - 1 ? "10px" : "0" }}
                 >

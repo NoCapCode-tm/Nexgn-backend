@@ -17,11 +17,10 @@ import {
 } from "@react-email/components";
 
 /**
- * SubAdminInviteEmail.jsx
+ * DocumentSignRequestEmail.jsx
  * ---------------------------------------------------------------------------
- * Self-contained. Accept/Deny here are real coded buttons (not a flattened
- * image) — text is crisp/selectable, not part of a graphic. Footer uses
- * LinkedIn + Instagram.
+ * Self-contained. Sender/Document label-value pairs + a real coded "View"
+ * button (plain, no icon). Footer uses LinkedIn + Instagram.
  * ---------------------------------------------------------------------------
  */
 
@@ -36,7 +35,7 @@ const SOCIAL_LINKS = [
 ];
 
 const COLORS = {
-  red: "#FF0915",
+  red: "#F03A2E",
   redSoft: "#EF6E63",
   dark: "#1A1A1A",
   gray: "#6B7280",
@@ -62,9 +61,9 @@ const emailHeadCss = `
   table { border-collapse: collapse; }
   img { -ms-interpolation-mode: bicubic; }
 
-  .px { padding-left: ${PX_DESKTOP}; padding-right: ${PX_DESKTOP}; }
+    .px { padding-left: ${PX_DESKTOP}; padding-right: ${PX_DESKTOP}; }
 
-  @media only screen and (max-width: 600px) {
+@media only screen and (max-width: 600px) {
     .container { width: 100% !important; }
     .px { padding-left: ${PX_MOBILE} !important; padding-right: ${PX_MOBILE} !important; }
     .headline { font-size: 26px !important; line-height: 36px !important; }
@@ -81,7 +80,7 @@ const styles = {
   container: { maxWidth: "600px", margin: "0 auto", padding: "44px 0" },
   headline: {
     color: COLORS.red,
-    fontSize: "42px",
+    fontSize: "40px",
     lineHeight: "44px",
     fontWeight: 800,
     letterSpacing: "-0.5px",
@@ -93,9 +92,23 @@ const styles = {
     fontSize: "15px",
     lineHeight: "24px",
     margin: 0,
-    maxWidth: "420px",
+    maxWidth: "380px",
   },
-  acceptButton: {
+  fieldLabel: {
+    fontFamily: BODY_FONT,
+    color: COLORS.gray,
+    fontSize: "14px",
+    fontWeight: 400,
+    margin: "0 0 2px 0",
+  },
+  fieldValue: {
+    fontFamily: BODY_FONT,
+    color: COLORS.dark,
+    fontSize: "17px",
+    fontWeight: 700,
+    margin: 0,
+  },
+  viewButton: {
     backgroundColor: COLORS.red,
     color: "#ffffff",
     fontFamily: BODY_FONT,
@@ -103,20 +116,11 @@ const styles = {
     fontWeight: 700,
     textDecoration: "none",
     borderRadius: "8px",
-    padding: "10px 32px",
-    display: "inline-block",
-  },
-  denyButton: {
-    backgroundColor: "#ffffff",
-    color: COLORS.red,
-    fontFamily: BODY_FONT,
-    fontSize: "15px",
-    fontWeight: 700,
-    textDecoration: "none",
-    borderRadius: "8px",
-    border: `1.5px solid ${COLORS.red}`,
-    padding: "8.5px 30.5px", // 1.5px less than acceptButton's padding to offset its border and keep both buttons the same visual height/width
-    display: "inline-block",
+    padding: "15px 0",
+    display: "block",
+    width: "100%",
+    textAlign: "center",
+    boxSizing: "border-box",
   },
   dropCapCol: { width: 88, verticalAlign: "top" },
   testimonialCol: { verticalAlign: "top", paddingLeft: "8px" },
@@ -195,12 +199,11 @@ function TrustBadge({ icon, label, divider }) {
   );
 }
 
-export default function SubAdminInviteEmail({
-  recipientName = "there",
-  inviterFirstName = "A teammate",
-  organizationName = "their workspace",
-  acceptUrl = "",
-  denyUrl = "",
+export default function DocumentSignRequestEmail({
+  senderName = "Sofia Martínez",
+  documentName = "Document Name or Reference ID",
+  deadlineDate = "[Deadline Date]",
+  viewUrl = "",
 }) {
   return (
     <Html>
@@ -208,14 +211,13 @@ export default function SubAdminInviteEmail({
         <style>{emailHeadCss}</style>
       </Head>
       <Preview>
-        {inviterFirstName} invited you to join {organizationName} as a
-        sub-admin on Nexgn.
+        {senderName} sent you a document to sign — due {deadlineDate}.
       </Preview>
 
       <Body style={{ ...styles.main, fontFamily: BODY_FONT }}>
         <Container style={styles.container} className="container">
           {/* ---------------- Logo ---------------- */}
-          <Section style={{ textAlign: "center", marginBottom: 36, marginTop: 20 }} className="px">
+          <Section style={{ textAlign: "center", marginBottom: 36, marginTop: 20  }} className="px">
             <Img
               src={`${ASSET_URL}/logo.png`}
               width="40"
@@ -232,37 +234,35 @@ export default function SubAdminInviteEmail({
               style={{ ...styles.headline, fontFamily: HEADING_FONT }}
               className="headline"
             >
-              The stage is set, {recipientName}.
+              You have received a document
+              <br />
+              that requires your signature.
             </Heading>
             <Text style={styles.bodyText}>
-              Your workspace is officially live. {inviterFirstName} just
-              tagged you in to join {organizationName} as a sub-admin on
-              Nexgn.
-            </Text>
-            <Text style={{ ...styles.bodyText, marginTop: 2 }}>
-              Your pending request is waiting. Hit the button below to
-              securely sign in.
+              Please review the document carefully and ensure that you sign
+              it before {deadlineDate}.
             </Text>
           </Section>
 
-          {/* ---------------- Accept / Deny ---------------- *
-              Real coded buttons (not baked into an image) — the text is
-              crisp/selectable, unlike the ring+CTA graphics in the other
-              templates, so this is genuine HTML/CSS. Deny is now a
-              bordered outline button matching Accept's size/radius. */}
+          {/* ---------------- Sender / Document fields ---------------- */}
           <Section style={{ marginTop: 24 }} className="px">
+            <Text style={styles.fieldLabel}>Sender</Text>
+            <Text style={styles.fieldValue}>{senderName}</Text>
+          </Section>
+          <Section style={{ marginTop: 16 }} className="px">
+            <Text style={styles.fieldLabel}>Document</Text>
+            <Text style={styles.fieldValue}>{documentName}</Text>
+          </Section>
+
+          {/* ---------------- View button ---------------- *
+              Real coded button, plain (no icon), centered. */}
+          <Section style={{ marginTop: 28 }} className="px">
             <Row>
-              <Column style={{ width: "1%", whiteSpace: "nowrap" }}>
-                <Button href={acceptUrl} style={styles.acceptButton}>
-                  Accept
+              <Column style={{ width: "50%" }} className="stack-col">
+                <Button href={viewUrl} style={styles.viewButton}>
+                  View
                 </Button>
               </Column>
-              <Column style={{ width: "1%", whiteSpace: "nowrap", paddingLeft: 12 }}>
-                <Button href={denyUrl} style={styles.denyButton}>
-                  Deny
-                </Button>
-              </Column>
-              <Column>&nbsp;</Column>
             </Row>
           </Section>
 
@@ -372,8 +372,8 @@ export default function SubAdminInviteEmail({
             {/* Setting a fixed width and margin auto centers the icons side-by-side */}
             <Row style={{ width: `${SOCIAL_LINKS.length * 34}px`, margin: "0 auto", marginBottom: "16px" }}>
               {SOCIAL_LINKS.map((social, i) => (
-                <Column
-                  align="center"
+                <Column 
+                  align="center" 
                   key={social.alt}
                   style={{ paddingRight: i < SOCIAL_LINKS.length - 1 ? "10px" : "0" }}
                 >
