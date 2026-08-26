@@ -1,5 +1,5 @@
 
-import { renderResetPasswordEmail, renderSubAdminInviteEmail, renderVerifyEmail, renderWaitlistEmail } from "../emails/renderEmail.jsx";
+import { renderResetPasswordEmail, renderSubAdminInviteEmail, renderTwoFAemail, renderVerifyEmail, renderWaitlistEmail } from "../emails/renderEmail.jsx";
 
 import { activitylog } from "../models/ActivityLog.js";
 import { notified } from "../models/notified.models.js";
@@ -24,7 +24,7 @@ import QRCode from "qrcode";
         const existinguser = await user.findOne({
             $or:[{email}]
         })
-        if(!existinguser){
+        if(!existinguser){  //commit !
            throw new Apierror(400,"User already exists")
         }
        let orgid = `NGX-${companyname.split(" ")[0]}`
