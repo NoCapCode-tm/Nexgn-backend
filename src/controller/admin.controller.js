@@ -24,7 +24,7 @@ import QRCode from "qrcode";
         const existinguser = await user.findOne({
             $or:[{email}]
         })
-        if(existinguser){
+        if(!existinguser){
            throw new Apierror(400,"User already exists")
         }
        let orgid = `NGX-${companyname.split(" ")[0]}`
