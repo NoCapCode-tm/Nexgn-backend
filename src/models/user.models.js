@@ -77,7 +77,15 @@ const UserSchema = mongoose.Schema({
     addedby:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"user",
-    }
+    },
+    twoFAenabled:{
+        type:Boolean,
+        default:false
+    },
+    twoFAsecret:{
+        type:String,
+    },
+
 },{timestamps:true})
 
 UserSchema.pre("save",async function(){

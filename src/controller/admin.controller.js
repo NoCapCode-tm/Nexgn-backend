@@ -8,6 +8,8 @@ import { Apierror } from "../utils/Apierror.utils.js";
 import { Apiresponse } from "../utils/Apiresponse.utils.js";
 import { asynchandler } from "../utils/Asynchandler.utils.js";
 import { Resend } from 'resend';
+import { generateSecret,generateURI,verify} from "otplib";
+import QRCode from "qrcode";
 
 
 
@@ -594,4 +596,72 @@ export const resetpass = asynchandler(async(req,res)=>{
 
     res.status(200)
     .json(new Apiresponse(200,"Password changed Successfully",loginuser))
+})
+
+export const twofaenable = asynchandler(async(req,res)=>{
+   
+    const admin= await user.findById(req.user._id)
+    if(!admin){
+        throw new Apierror(401,"User not Authorized")
+    }
+    const secret = await generateSecret()
+    if(!secret){
+        throw new Apierror(404,"Secret not generated")
+    }
+
+   const otpauth = generateURI({
+    issuer: "Your E-Signing App",
+    label: admin.email,
+    secret: secret,
+    algorithm: "sha1",
+    digits: 6,
+    period: 30
+});
+
+const qrCode = await QRCode.toDataURL(otpauth);
+
+        admin.twoFAsecret=secret
+        admin.save()
+
+
+        res.status(200)
+        .json(new Apiresponse(200,"2 FA Enabled",{qrCode,secret}))
+})
+
+export const verifyotp = asynchandler(async(req,res)=>{
+    const {token} = req.body
+     const admin = await user.findById(req.user._id)
+    if(!admin){
+        throw new Apierror(401,"User not Authorized")
+    }
+
+    if(!token){
+        throw new Apierror(400,"Please fill all the required fields")
+    }
+
+    const veri = await verify({token,secret:admin.twoFAsecret})
+    if(!veri){
+        throw new Apierror(401,"User not authorized")
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+const html = await renderTwoFAemail({
+    recipientName:admin.name
+});
+
+if(!admin.twofaenable){
+    admin.twofaenable=true
+    admin.save()
+}
+
+await resend.emails.send({
+    from: `Nexgn <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: "Two Factor Auth Enabled",
+    html
+});
+
+    res.status(200)
+    .json(new Apiresponse(200,"User verified Successfully",admin))
 })
