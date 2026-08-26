@@ -645,9 +645,9 @@ export const verifyotp = asynchandler(async(req,res)=>{
     }
 
     const resend = new Resend(process.env.RESEND_API_KEY);
-
+    const name = admin.name.split(" ")[0]
 const html = await renderTwoFAemail({
-    recipientName:admin.name
+    recipientName:name
 });
 
 if(!admin.twofaenable){
