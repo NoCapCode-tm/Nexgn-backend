@@ -657,7 +657,7 @@ if(!admin.twofaenable){
 
 await resend.emails.send({
     from: `Nexgn <${process.env.SMTP_USER}>`,
-    to: email,
+    to: admin.email,
     subject: "Two Factor Auth Enabled",
     html
 });
