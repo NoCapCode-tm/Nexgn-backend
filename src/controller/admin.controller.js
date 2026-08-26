@@ -610,7 +610,7 @@ export const twofaenable = asynchandler(async(req,res)=>{
     }
 
    const otpauth = generateURI({
-    issuer: "Your E-Signing App",
+    issuer: "Nexgn Inc.",
     label: admin.email,
     secret: secret,
     algorithm: "sha1",
