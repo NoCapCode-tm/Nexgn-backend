@@ -664,4 +664,5 @@ await resend.emails.send({
 
     res.status(200)
     .json(new Apiresponse(200,"User verified Successfully",admin))
+    //checking
 })
