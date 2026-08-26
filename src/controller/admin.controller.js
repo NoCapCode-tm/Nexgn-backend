@@ -650,8 +650,8 @@ const html = await renderTwoFAemail({
     recipientName:name
 });
 
-if(!admin.twofaenable){
-    admin.twofaenable=true
+if(!admin.twoFAenabled){
+    admin.twoFAenabled=true
     admin.save()
 }
 
