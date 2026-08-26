@@ -9,6 +9,11 @@ import { templaterouter } from "./routes/template.routes.js";
 import { signrouter } from "./routes/signed.routes.js";
 import { documentrouter } from "./routes/document.routes.js";
 import { activityrouter } from "./routes/Activitylog.routes.js";
+import {
+    razorpayWebhook
+} from "./controller/razorpayWebhook.controller.js";
+import subscriptionrouter from "./routes/subscription.routes.js";
+
 
 const app = express();
 
@@ -31,14 +36,23 @@ app.use(
   })
 );
 
+app.post(
+    "/api/v1/razorpay/webhook",
+    express.raw({
+        type: "application/json"
+    }),
+    razorpayWebhook
+);
+
 // Standard Middlewares
 app.use(express.json({ limit: "16mb" }));
 app.use(express.urlencoded({ extended: true, limit: "16mb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 
-// Routes
+
 app.use("/api/v1/google", googleRoutes);
+app.use("/api/v1/subscription", subscriptionrouter);
 app.use("/api/v1/admin", adminrouter);
 app.use("/api/v1/template", templaterouter);
 app.use("/api/v1/document", documentrouter);
