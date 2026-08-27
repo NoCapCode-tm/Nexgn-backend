@@ -341,7 +341,7 @@ export default function DocumentSignedCertifiedEmail({
   verificationLabel = "Your verification code",
   fileName = "Service Agreement — Q3 2026.pdf",
   fileMeta = "Signed · 2 pages · 348 KB",
-  signers = ["Alex Moreno", "Sofia Martínez"],
+  signers1 = ["Alex Moreno", "Sofia Martínez"],
   pdfUrl = "https://app.nexgn.com/documents/doc123/download",
   certificateUrl = "https://app.nexgn.com/documents/doc123/certificate",
   certificateId = "NXG-2026-847291-CERT",
@@ -419,10 +419,10 @@ export default function DocumentSignedCertifiedEmail({
                             <Text style={styles.fileName}>{fileName}</Text>
                             <Text style={styles.fileMeta}>{fileMeta}</Text>
                             <Text style={styles.signersRow}>
-                              {signers.map((signer, i) => (
+                              {signers1.map((signer, i) => (
                                 <React.Fragment key={signer}>
                                   &#10003; {signer}
-                                  {i < signers.length - 1 ? "    " : ""}
+                                  {i < signers1.length - 1 ? "    " : ""}
                                 </React.Fragment>
                               ))}
                             </Text>
