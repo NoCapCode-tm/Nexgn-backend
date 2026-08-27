@@ -85,7 +85,7 @@ const emailHeadCss = `
     .drop-cap-col { width: 56px !important; }
     .drop-cap-img { width: 56px !important; height: 120px !important; }
     .doc-card-top { border-radius: 20px 20px 0 0 !important; }
-    .doc-card-top-inner { padding: 18px 16px 16px 16px !important; }
+    .doc-card-top-inner { padding: 10px 0px 0px 16px !important; }
     .doc-card-bottom { border-radius: 0 0 20px 20px !important; }
     .doc-btn-link { font-size: 13px !important; }
     .file-card-inner { padding: 12px !important; }
@@ -94,7 +94,7 @@ const emailHeadCss = `
     .cert-icon-img { width: 88px !important; height: 88px !important; margin-top: 68px !important; }
     .cert-label { display: block !important; width: auto !important; margin-bottom: 2px !important; }
     .hash-value { font-size: 11px !important; }
-  }
+  
 `;
 
 const styles = {
@@ -140,8 +140,8 @@ const styles = {
   },
   fileCard: {
     backgroundColor: "#FBEAE7",
-    borderTopLeftRadius:"50px",
-    borderBottomLeftRadius:"35px",
+    borderTopLeftRadius:"45px",
+    borderBottomLeftRadius:"45px",
     marginTop: "3px",
   },
   fileCardInner: {
