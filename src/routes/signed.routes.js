@@ -6,7 +6,10 @@ import { disapprove, getrequest, statuschange, submitdoc } from "../controller/s
 
 export const signrouter = Router();
 
+//post apis
 signrouter.route("/statuschange").post(statuschange)
 signrouter.route("/requestsubmit").post(submitdoc)
+
+//get apis
 signrouter.route("/getrequest/:id").get(getrequest)
 signrouter.route("/reject/:id").get(disapprove)

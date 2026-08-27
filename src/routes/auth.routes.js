@@ -5,30 +5,34 @@ import { upload } from "../middleware/multer.middleware.js";
 
 export const adminrouter = Router();
 
-
+//post apis
 adminrouter.post("/signup", adminsignup);
-adminrouter.get("/twofa", verifyjwt,twofaenable);
 adminrouter.post("/twofaverify", verifyjwt,verifyotp);
 adminrouter.post("/verify", changestatus);
 adminrouter.post("/notified", notified0);
 adminrouter.post("/resetpassword", resetpass);
 adminrouter.post("/login", loginAdmin);
-adminrouter.get("/me", verifyjwt,getAdmin);
 adminrouter.post("/logout",verifyjwt,logout);
 adminrouter.post("/forgot-password",resetpassword);
 adminrouter.post("/delete",deleteAdmin);
 adminrouter.post("/invite",verifyjwt,inviteadmin);
-adminrouter.get("/getsubadmin",verifyjwt,getsubadmin);
+adminrouter.post("/addcontact",verifyjwt,addcontact);
 adminrouter.post("/setpassword",setpass);
-adminrouter.get(
-    "/decline/:email",
-    declineInvitation
-);
+
+//put apsi
 adminrouter.put(
   "/update",
   verifyjwt,
   upload.single("profile_picture"),
   updateAdmin
 );
-adminrouter.post("/addcontact",verifyjwt,addcontact);
+
+//get apis
 adminrouter.get("/getuser",verifyjwt,getuser);
+adminrouter.get("/twofa", verifyjwt,twofaenable);
+adminrouter.get("/me", verifyjwt,getAdmin);
+adminrouter.get("/getsubadmin",verifyjwt,getsubadmin);
+adminrouter.get(
+    "/decline/:email",
+    declineInvitation
+);

@@ -14,34 +14,13 @@ import {
 
 const subscriptionrouter = Router();
 
-subscriptionrouter.get(
-    "/plans",
-    verifyjwt,
-    getSubscriptionPlans
-);
+//post apis
+subscriptionrouter.post("/create",verifyjwt,createSubscription);
+subscriptionrouter.post("/verify",verifyjwt,verifySubscriptionPayment);
 
-subscriptionrouter.post(
-    "/create",
-    verifyjwt,
-    createSubscription
-);
-
-subscriptionrouter.post(
-    "/verify",
-    verifyjwt,
-    verifySubscriptionPayment
-);
-
-subscriptionrouter.get(
-    "/me",
-    verifyjwt,
-    getMySubscription
-);
-
-subscriptionrouter.get(
-    "/payments",
-    verifyjwt,
-    getMyPayments
-);
+//get apis
+subscriptionrouter.get("/plans",verifyjwt,getSubscriptionPlans);
+subscriptionrouter.get("/mysubscription",verifyjwt,getMySubscription);
+subscriptionrouter.get("/mypayments",verifyjwt,getMyPayments);
 
 export default subscriptionrouter;

@@ -49,6 +49,11 @@ export const createdocument = asynchandler(async(req,res)=>{
               note:note
            })
         }
+        const expiresAt = new Date();
+
+expiresAt.setDate(
+    expiresAt.getDate() + Number(expiry)
+);
        
         
         const tasks = applicants.map(async (signee) => {
@@ -71,7 +76,7 @@ export const createdocument = asynchandler(async(req,res)=>{
         documentId: document._id,
         senderId: document.createdBy,
         senderip:senderip,
-        expiresat: expiry,
+        expiresat: expiresAt,
         recipient: {
             userId: member._id
         },

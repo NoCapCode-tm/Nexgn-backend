@@ -35,6 +35,7 @@ const SignatureRequestSchema = new mongoose.Schema({
         enum:[
             "pending",
             "Viewed",
+            "Expired",
             "completed",
             "cancelled"
         ],

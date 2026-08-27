@@ -6,13 +6,13 @@ import { upload } from "../middleware/multer.middleware.js";
 
 export const templaterouter = Router();
 
-templaterouter.post(
-  "/create",
-  verifyjwt,
-  upload.single("file"),
-  createtemplate
-);
+//post apis
+templaterouter.post("/create",verifyjwt,upload.single("file"),createtemplate);
+
+//delete apis
+templaterouter.route("/deletetemplate/:id").delete(verifyjwt,deletetemplate)
+
+//get apis
+templaterouter.route("/template/:id").get(getsingletemplate)
 templaterouter.route("/gettemplate").get(verifyjwt,gettemplate)
 templaterouter.get("/template/:id/pdf", getTemplatePdf);
-templaterouter.route("/deletetemplate/:id").delete(verifyjwt,deletetemplate)
-templaterouter.route("/template/:id").get(getsingletemplate)

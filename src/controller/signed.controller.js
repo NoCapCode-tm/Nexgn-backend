@@ -403,6 +403,20 @@ export const getrequest = asynchandler(async(req,res)=>{
         throw new Apierror(400,"No Request Find")
     }
 
+   if (
+    request.expiresAt &&
+    Date.now() >= request.expiresAt.getTime()
+) {
+    request.overallStatus = "Expired";
+
+    await request.save();
+
+    throw new Apierror(
+        410,
+        "Signature Request Expired"
+    );
+}
+
     request.status = "Viewed"
     await request.save()
 

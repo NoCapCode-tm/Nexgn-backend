@@ -71,10 +71,6 @@ export const createSubscription =
             );
         }
 
-
-        /*
-         * FREE PLAN
-         */
         if (
             plan.billingPeriod ===
             "free"
@@ -90,11 +86,6 @@ export const createSubscription =
                 )
             );
         }
-
-
-        /*
-         * Check existing paid subscription.
-         */
         const existing =
             await subscription.findOne({
 
@@ -120,14 +111,6 @@ export const createSubscription =
             );
         }
 
-
-        /*
-         * One Razorpay subscription
-         * for the selected plan.
-         *
-         * Here we're setting 12 yearly
-         * cycles/monthly cycles as an example.
-         */
         const totalCount =
             plan.billingPeriod ===
             "monthly"
@@ -320,12 +303,6 @@ export const verifySubscriptionPayment =
         localSubscription.lastPaymentId =
             razorpay_payment_id;
 
-        /*
-         * Do not mark payment/subscription as finally
-         * paid solely from this browser response.
-         * The webhook is the authoritative recurring
-         * event source.
-         */
         if (
             localSubscription.status ===
             "created"
