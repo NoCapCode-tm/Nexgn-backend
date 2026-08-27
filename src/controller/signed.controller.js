@@ -487,3 +487,19 @@ export const disapprove = asynchandler(async(req,res)=>{
      res.status(200)
     .json(new Apiresponse(200,"Request Fetched Successfully",request))
 })
+
+export const signrequests = asynchandler(async(req,res)=>{
+  const admin = await user.findById(req.user._id)
+
+  if(!admin){
+    throw new Apierror(401,"User Not Authorized")
+  }
+
+  const request = await signrequest.find({senderId:admin._id})
+  if(request.length<1){
+    throw new Apierror(404,"No Request Found")
+  }
+
+  res.status(200)
+  .json(new Apiresponse(200,"Requests Fetched Successfully",request))
+})
