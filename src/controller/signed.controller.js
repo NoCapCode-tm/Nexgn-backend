@@ -13,6 +13,9 @@ import { user } from "../models/user.models.js";
 import { generateCertificatePDF } from "../utils/generateCertificatePDF.js";
 import { uploadCertificateToDrive } from "../utils/uploadfiletodrive.utils.js";
 import { certificateTemplate } from "../emails/certificateTemplate.js";
+import { generateSignedDocumentPDF } from "../utils/generateSignedDocumentPDF.js.js";
+import crypto from "crypto";
+import { downloadFileFromDrive } from "../utils/downloadFileFromDrive.js";
 
 
 
@@ -52,334 +55,525 @@ const formatDate = (date) => {
 
 
 export const submitdoc = asynchandler(async (req, res) => {
-  const {
-    sign,
-    widget,
-    ipv4,
-    ipv6,
-  } = req.body;
+    const {
+        sign,
+        widget,
+        ipv4,
+        ipv6
+    } = req.body;
 
+    if (
+        !sign ||
+        !ipv4 ||
+        !ipv6 ||
+        !Array.isArray(widget)
+    ) {
+        throw new Apierror(
+            400,
+            "Please fill all the required fields"
+        );
+    }
 
+    if (widget.length === 0) {
+        throw new Apierror(
+            400,
+            "Please provide document widgets"
+        );
+    }
 
-  if (!sign || !ipv4 || !ipv6 || !Array.isArray(widget)) {
-    throw new Apierror(
-      400,
-      "Please fill all the required fields"
-    );
-  }
+    const request = await signrequest
+        .findById(sign)
+        .populate("documentId")
+        .populate({
+            path: "senderId",
+            select: "-password -twoFAsecret"
+        })
+        .populate({
+            path: "recipient.userId",
+            select: "-password -twoFAsecret"
+        });
 
-  if (widget.length === 0) {
-    throw new Apierror(
-      400,
-      "Please provide document widgets"
-    );
-  }
+    if (!request) {
+        throw new Apierror(
+            404,
+            "No Request Found"
+        );
+    }
 
+    if (
+        request.overallStatus === "completed"
+    ) {
+        throw new Apierror(
+            400,
+            "Already signed"
+        );
+    }
 
-  const request = await signrequest.findById(sign);
+    if (
+        request.overallStatus === "Expired"
+    ) {
+        throw new Apierror(
+            410,
+            "Signature Request Expired"
+        );
+    }
 
-  if (!request) {
-    throw new Apierror(
-      404,
-      "No Request Found"
-    );
-  }
+    if (
+        request.expiresat &&
+        Date.now() >=
+            request.expiresat.getTime()
+    ) {
+        request.overallStatus = "Expired";
 
+        await request.save();
 
-  if (request.overallStatus === "completed") {
-    throw new Apierror(
-      400,
-      "Already signed"
-    );
-  }
+        throw new Apierror(
+            410,
+            "Signature Request Expired"
+        );
+    }
 
+    const document =
+        await doc.findById(
+            request.documentId._id
+        ).populate("templateId");
 
+    if (!document) {
+        throw new Apierror(
+            404,
+            "No Document Found"
+        );
+    }
 
-  const document = await doc.findById(
-    request.documentId
-  );
+    const sender =
+        request.senderId;
 
-  if (!document) {
-    throw new Apierror(
-      404,
-      "No Document Found"
-    );
-  }
+    if (!sender) {
+        throw new Apierror(
+            404,
+            "Document sender not found"
+        );
+    }
 
+    const receiver =
+        request.recipient.userId;
 
-  const sender = await user.findById(
-    request.senderId
-  );
+    if (!receiver) {
+        throw new Apierror(
+            404,
+            "Signer not found"
+        );
+    }
 
-  if (!sender) {
-    throw new Apierror(
-      404,
-      "Document sender not found"
-    );
-  }
+    const widgetDefinitions =
+        document.driveFileId
+            ? (
+                await documentfield.findOne({
+                    documentId:
+                        document._id
+                }).lean()
+            )?.widget || []
+            : (
+                await templatewidget.findOne({
+                    templateid:
+                        document.templateId._id
+                }).lean()
+            )?.widget || [];
 
+    if (
+        widgetDefinitions.length === 0
+    ) {
+        throw new Apierror(
+            400,
+            "No document widgets found"
+        );
+    }
 
+    const signedWidgets =
+        widgetDefinitions.map(
+            (definition, index) => {
 
-  const receiver = await user.findById(
-    request.recipient.userId
-  );
+                const submitted =
+                    widget.find(
+                        item =>
+                            item.index === index
+                    );
 
-  if (!receiver) {
-    throw new Apierror(
-      404,
-      "Signer not found"
-    );
-  }
+                return {
+                    index,
 
+                    widgetname:
+                        definition.widgetname,
 
+                    page:
+                        definition.page,
 
-  request.overallStatus = "completed";
-  request.recipient.signedAt = new Date();
+                    x:
+                        definition.x,
 
-  await request.save();
+                    y:
+                        definition.y,
 
+                    width:
+                        definition.width,
 
-  // ----------------------------------------
-  // 7. Get all requests for document
-  // ----------------------------------------
+                    height:
+                        definition.height,
 
-  const requests = await signrequest.find({
-    documentId: request.documentId,
-  });
+                    value:
+                        submitted?.value || ""
+                };
+            }
+        );
 
-  if (requests.length === 0) {
-    throw new Apierror(
-      404,
-      "No Requests Found"
-    );
-  }
+    const existingSignature =
+        await signature.findOne({
+            requestId:
+                request._id
+        });
 
+    if (existingSignature) {
+        throw new Apierror(
+            400,
+            "Signature already submitted"
+        );
+    }
 
-  // ----------------------------------------
-  // 8. Update document status
-  // ----------------------------------------
+    const signatureRecord =
+        await signature.create({
+            requestId:
+                request._id,
 
-  const total = requests.length;
+            ipv4,
 
-  const complete = requests.filter(
-    (rs) =>
-      rs.overallStatus === "completed"
-  ).length;
+            ipv6,
 
+            widget:
+                signedWidgets
+        });
 
-  if (complete === total) {
-    document.status = "completed";
-  } else if (complete > 0) {
-    document.status = "partially_signed";
-  } else {
-    document.status = "sent";
-  }
+    const driveFileId =
+        document.driveFileId ||
+        document.templateId?.file?.fileId;
 
-  await document.save();
+    if (!driveFileId) {
+        throw new Apierror(
+            400,
+            "Original PDF not found"
+        );
+    }
 
+    const originalPdfBuffer =
+        await downloadFileFromDrive(
+            request.senderId._id,
+            driveFileId
+        );
 
+    if (!originalPdfBuffer) {
+        throw new Apierror(
+            400,
+            "Unable to download original document"
+        );
+    }
 
-  const generatedCertificateId =
-    `NXG-CERT-${Date.now()}`;
+    const signedPdfBuffer =
+        await generateSignedDocumentPDF({
+            pdfBuffer:
+                originalPdfBuffer,
 
+            widgets:
+                signedWidgets
+        });
 
+    if (!signedPdfBuffer) {
+        throw new Apierror(
+            400,
+            "Unable to generate signed document"
+        );
+    }
 
-  const certificateRecord =
-    await certificate.create({
-      certificateId:
-        generatedCertificateId,
+    const signedDocumentHash =
+        crypto
+            .createHash("sha256")
+            .update(signedPdfBuffer)
+            .digest("hex");
 
-      documentId:
-        document._id,
+    const signedDriveUpload =
+        await uploadCertificateToDrive(
+            request.senderId._id,
+            signedPdfBuffer,
+            `${document.title}-signed.pdf`
+        );
 
-      documentName:
-        document.title,
+    if (!signedDriveUpload) {
+        throw new Apierror(
+            400,
+            "Unable to upload signed document"
+        );
+    }
 
-      generatedAt:
-        new Date(),
+    document.signedFileId =
+        signedDriveUpload.fileId || null;
+
+    document.signedDownloadLink =
+        signedDriveUpload.downloadLink ||
+        null;
+
+    document.signedWebViewLink =
+        signedDriveUpload.webViewLink ||
+        null;
+
+    await document.save();
+
+    const signedAt =
+        new Date();
+
+    request.overallStatus =
+        "completed";
+
+    request.recipient.signedAt =
+        signedAt;
+
+    await request.save();
+
+    const generatedCertificateId =
+        `NXG-CERT-${Date.now()}`;
+
+    const signatureWidget =
+        signedWidgets.find(
+            item =>
+                item.widgetname ===
+                "signature"
+        );
+
+    const signatureImage =
+        signatureWidget?.value || null;
+
+    const certificateHtml =
+        certificateTemplate({
+            certificateId:
+                generatedCertificateId,
+
+            documentId:
+                document._id.toString(),
+
+            documentName:
+                document.title,
+
+            documentHash:
+                signedDocumentHash,
+
+            organizationName:
+                sender
+                    ?.professional_details
+                    ?.company_name ||
+                "Nexgn",
+
+            createdOn:
+                formatDate(
+                    document.createdAt
+                ),
+
+            completedOn:
+                formatDate(
+                    signedAt
+                ),
+
+            totalSigners:
+                1,
+
+            originatorName:
+                sender?.name ||
+                "N/A",
+
+            originatorEmail:
+                sender?.email ||
+                "N/A",
+
+            originatorIp:
+                request.senderip ||
+                "N/A",
+
+            signers: [
+                {
+                    name:
+                        receiver?.name ||
+                        "N/A",
+
+                    email:
+                        receiver?.email ||
+                        "N/A",
+
+                    signedAt:
+                        formatDate(
+                            signedAt
+                        ),
+
+                    ipv4:
+                        ipv4 ||
+                        "N/A",
+
+                    ipv6:
+                        ipv6 ||
+                        "N/A",
+
+                    signatureImage
+                }
+            ]
+        });
+
+    const certificatePdfBuffer =
+        await generateCertificatePDF(
+            certificateHtml
+        );
+
+    const certificateRecord =
+        await certificate.create({
+            certificateId:
+                generatedCertificateId,
+
+            documentId:
+                document._id,
+
+            documentName:
+                document.title,
+
+            documentHash:
+                signedDocumentHash,
+
+            generatedAt:
+                signedAt
+        });
+
+    const certificateDriveUpload =
+        await uploadCertificateToDrive(
+            request.senderId._id,
+            certificatePdfBuffer,
+            `${generatedCertificateId}.pdf`
+        );
+
+    if (!certificateDriveUpload) {
+        throw new Apierror(
+            400,
+            "Unable to upload certificate"
+        );
+    }
+
+    certificateRecord.pdfUrl =
+        certificateDriveUpload.downloadLink;
+
+    await certificateRecord.save();
+
+    const resend =
+        new Resend(
+            process.env.RESEND_API_KEY
+        );
+
+    const emailHtml =
+        await renderSignature({
+            recipientName:
+                receiver.name,
+
+            fileName:
+                document.title,
+
+            signers: [
+                {
+                    name:
+                        receiver.name
+                }
+            ],
+
+            pdfUrl:
+                signedDriveUpload.downloadLink,
+
+            certificateUrl:
+                certificateDriveUpload.downloadLink,
+
+            certificateId:
+                generatedCertificateId,
+
+            signedAt:
+                formatDate(
+                    signedAt
+                ),
+
+            documentHash:
+                signedDocumentHash
+        });
+
+    await resend.emails.send({
+        from:
+            `Nexgn <${process.env.SMTP_USER}>`,
+
+        to:
+            receiver.email,
+
+        subject:
+            "Your document has been signed and certified",
+
+        html:
+            emailHtml
     });
 
+    const requests =
+        await signrequest.find({
+            documentId:
+                document._id
+        });
 
+    const total =
+        requests.length;
 
-  const signed =
-    await signature.create({
-      requestId: sign,
+    const completed =
+        requests.filter(
+            item =>
+                item.overallStatus ===
+                "completed"
+        ).length;
 
-      certificateId:
-        certificateRecord._id,
+    if (completed === total) {
+        document.status =
+            "completed";
+    } else {
+        document.status =
+            "partially_signed";
+    }
 
-      ipv4,
+    await document.save();
 
-      ipv6,
+    return res
+        .status(200)
+        .json(
+            new Apiresponse(
+                200,
+                "Document Signed Successfully",
+                {
+                    signature:
+                        signatureRecord,
 
-      widget,
-    });
+                    signedDocumentUrl:
+                        signedDriveUpload
+                            .downloadLink,
 
+                    signedDocumentViewUrl:
+                        signedDriveUpload
+                            .webViewLink,
 
-  const signatureWidget =
-    widget.find(
-      (item) =>
-        item.widgetname === "signature"
-    );
+                    certificateUrl:
+                        certificateDriveUpload
+                            .downloadLink,
 
+                    certificateId:
+                        generatedCertificateId,
 
-  const signatureImage =
-    signatureWidget?.value || null;
+                    documentHash:
+                        signedDocumentHash,
 
-
-
-  const html =
-    certificateTemplate({
-
-      certificateId:
-        generatedCertificateId,
-
-      documentId:
-        document._id.toString(),
-
-      documentName:
-        document.title,
-
-      documentHash:
-        "YOUR_SHA256_HASH",
-
-      organizationName:
-        sender?.professional_details?.company_name ||
-        "Nexgn",
-
-      createdOn:
-        formatDate(document.createdAt),
-
-      completedOn:
-        formatDate(
-          request.recipient.signedAt
-        ),
-
-      totalSigners: 1,
-
-      originatorName:
-        sender?.name || "N/A",
-
-      originatorEmail:
-        sender?.email || "N/A",
-
-      originatorIp:
-        request.senderip || "N/A",
-
-      signers: [
-        {
-          name:
-            receiver?.name || "N/A",
-
-          email:
-            receiver?.email || "N/A",
-
-          signedAt:
-            formatDate(
-              request.recipient.signedAt
-            ),
-
-          ipv4:
-            ipv4 || "N/A",
-
-          ipv6:
-            ipv6 || "N/A",
-
-          signatureImage,
-        },
-      ],
-    });
-
-
-
-  const pdfBuffer =
-    await generateCertificatePDF(html);
-
-
-
-  const driveUpload =
-    await uploadCertificateToDrive(
-      request.senderId,
-      pdfBuffer,
-      `${generatedCertificateId}.pdf`
-    );
-
-  if (!driveUpload) {
-    throw new Apierror(
-      400,
-      "Sender has not connected Google Drive"
-    );
-  }
-
-  certificateRecord.pdfUrl =
-    driveUpload.downloadLink;
-
-  certificateRecord.documentHash =
-    "HASH";
-
-  await certificateRecord.save();
-
-  const resend =
-    new Resend(
-      process.env.RESEND_API_KEY
-    );
-
-
-  const emailhtml =
-    await renderSignature({
-
-      recipientName:
-        receiver?.name,
-
-      documentName:
-        document.title,
-
-      signers: [
-        {
-          name:
-            receiver?.name,
-        },
-      ],
-
-      downloadCertificateUrl:
-        driveUpload.downloadLink,
-
-      certificateId:
-        generatedCertificateId,
-
-      signedAt:
-        formatDate(
-          request.recipient.signedAt
-        ),
-
-      documentHash:
-        "HASH",
-    });
-
-  await resend.emails.send({
-
-    from:
-      `Nexgn <${process.env.SMTP_USER}>`,
-
-    to:
-      receiver.email,
-
-    subject:
-      "Your document has been signed and certified",
-
-    html:
-      emailhtml,
-  });
-
-  return res
-    .status(200)
-    .json(
-      new Apiresponse(
-        200,
-        "Document Signed Successfully",
-        signed
-      )
-    );
+                    signedAt
+                }
+            )
+        );
 });
 
 export const getrequest = asynchandler(async(req,res)=>{

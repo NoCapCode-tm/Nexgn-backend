@@ -338,14 +338,14 @@ function CertRow({ label, value }) {
 }
 
 export default function DocumentSignedCertifiedEmail({
-  verificationLabel = "Your verification code",
-  fileName = "Service Agreement — Q3 2026.pdf",
-  fileMeta = "Signed · 2 pages · 348 KB",
-  signers1 = ["Alex Moreno", "Sofia Martínez"],
-  pdfUrl = "https://app.nexgn.com/documents/doc123/download",
-  certificateUrl = "https://app.nexgn.com/documents/doc123/certificate",
-  certificateId = "NXG-2026-847291-CERT",
-  signedAt = "July 8, 2026 · 14:32 UTC",
+  verificationLabel = "Your Verification Document" ,
+  fileName,
+  fileMeta,
+  signers,
+  pdfUrl,
+  certificateUrl ,
+  certificateId ,
+  signedAt ,
   jurisdiction = "eIDAS · ESIGN · UETA",
   documentHash = "a3f2b1c4d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4",
 }) {
@@ -419,13 +419,15 @@ export default function DocumentSignedCertifiedEmail({
                             <Text style={styles.fileName}>{fileName}</Text>
                             <Text style={styles.fileMeta}>{fileMeta}</Text>
                             <Text style={styles.signersRow}>
-                              {signers1.map((signer, i) => (
-                                <React.Fragment key={signer}>
-                                  &#10003; {signer}
-                                  {i < signers1.length - 1 ? "    " : ""}
-                                </React.Fragment>
-                              ))}
-                            </Text>
+  {signers.map((signer, i) => (
+    <React.Fragment
+      key={`${signer.name}-${i}`}
+    >
+      &#10003; {signer.name}
+      {i < signers.length - 1 ? "    " : ""}
+    </React.Fragment>
+  ))}
+</Text>
                           </Column>
                         </Row>
                       </Column>

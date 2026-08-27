@@ -4,7 +4,7 @@ const DocumentFieldSchema = new mongoose.Schema({
 
     documentId:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"Document"
+        ref:"doc"
     },
    
      widget:[{
