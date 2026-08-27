@@ -67,6 +67,22 @@ export const createdocument = asynchandler(async(req,res)=>{
         });
     }
 
+
+    // Add this date parser right above your signrequest.create logic
+    let expiresAtDate;
+    if (expiry) {
+        // If it's passed as a number (e.g. "22" days)
+        if (!isNaN(expiry)) {
+            expiresAtDate = new Date(Date.now() + parseInt(expiry) * 24 * 60 * 60 * 1000);
+        } else {
+            // If it's already an ISO date string
+            expiresAtDate = new Date(expiry);
+        }
+    } else {
+        // Fallback to 7 days if nothing is provided
+        expiresAtDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); 
+    }
+
     const signature = await signrequest.create({
         documentId: document._id,
         senderId: document.createdBy,
