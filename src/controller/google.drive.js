@@ -28,49 +28,45 @@ export const getAuthurl = asynchandler(async (req, res) => {
 
 export const AuthCallback = asynchandler(async(req,res)=>{
     try {
-      const { code, state } = req.query;
-      const user = req.user
+        const { code, state } = req.query;
+        // 'state' contains the user's _id that we passed during getAuthurl
 
-const { tokens } = await oauth2client.getToken(code);
+        const { tokens } = await oauth2client.getToken(code);
 
- const drive = await googledrive.findOneAndUpdate(
+        const drive = await googledrive.findOneAndUpdate(
+            { userId: state },
+            {
+                refreshToken: tokens.refresh_token,
+                connected: true
+            },
+            {
+                upsert: true,
+                new: true
+            }
+        );
 
-    {
-        userId: state
-    },
-
-    {
-        refreshToken: tokens.refresh_token,
-        connected: true
-    },
-
-    {
-        upsert: true,
-        new: true
-    }
-
-);
-
-  if(drive.connected === true){
-     const activity = await activitylog.create({
-             userId:user._id,
-             action:"Google Drive Connected",
-             status:"Success"
-         })
-  }else{
-    const activity = await activitylog.create({
-             userId:user._id,
-             action:"Google Drive Connection Failed",
-             status:"Failure"
-         })
-  }
+        if(drive.connected === true){
+            await activitylog.create({
+                userId: state, // Use 'state' here instead of user._id
+                action: "Google Drive Connected",
+                status: "Success"
+            });
+        } else {
+            await activitylog.create({
+                userId: state, // Use 'state' here instead of user._id
+                action: "Google Drive Connection Failed",
+                status: "Failure"
+            });
+        }
     
-        res.status(200)
-        .redirect("https://sign.nexgn.cloud/settings?drive=connected");
+        res.status(200).redirect("https://sign.nexgn.cloud/settings?drive=connected");
+        
     } catch (error) {
-        console.log("Something went wrong",error.message)
+        console.log("OAuth Callback Error:", error.message);
+        res.status(500).send("Internal Server Error during Google Auth");
     }
-})
+});
+
 
 export const driveStatus = asynchandler(async(req,res)=>{
 
