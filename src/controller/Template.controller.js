@@ -7,6 +7,7 @@ import { Apiresponse } from "../utils/Apiresponse.utils.js";
 import { asynchandler } from "../utils/Asynchandler.utils.js";
 import { uploadFileToDrive } from "../utils/uploadfiletodrive.utils.js";
 import { activitylog } from "../models/ActivityLog.js";
+import { user } from "../models/user.models.js";
 
 
 export const createtemplate = asynchandler(async(req,res)=>{
@@ -118,15 +119,26 @@ export const getTemplatePdf = async (req, res) => {
 
     const temple = await template.findById(id);
 
+    const created = await user.findById(temple.createdby)
+    if(!created|| created.deleted === true){
+      throw new Apierror(404,"User Not found or Deleted")
+    }
+
     if (!temple) {
       return res.status(404).json({
         success: false,
         message: "Template not found",
       });
     }
+    let driveuser ; 
+    if(created.role==="Admin"){
+      driveuser = created._id
+    }else{
+      driveuser=created.createdby
+    }
 
     const driveAccount = await googledrive.findOne({
-      userId: temple.createdby,
+      userId: driveuser,
       connected: true,
     });
 
