@@ -1,5 +1,6 @@
 import { user } from "../models/user.models.js";
 import { Apierror } from "../utils/Apierror.utils.js";
+import { Apiresponse } from "../utils/Apiresponse.utils.js";
 import { asynchandler } from "../utils/Asynchandler.utils.js";
 
 export const checkpermission = (requiredPermission) =>
@@ -20,9 +21,9 @@ export const checkpermission = (requiredPermission) =>
             );
 
         if (!hasPermission) {
-            throw new Apierror(
+            throw new Apiresponse(
                 403,
-                "You do not have permission to perform this action"
+                "You do not have permission to perform this action",[]
             );
         }
 
