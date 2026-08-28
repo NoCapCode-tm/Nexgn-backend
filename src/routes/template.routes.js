@@ -8,12 +8,12 @@ import { checkpermission } from "../middleware/permission.middleware.js";
 export const templaterouter = Router();
 
 //post apis
-templaterouter.post("/create",verifyjwt,upload.single("file"),createtemplate);
+templaterouter.post("/create",verifyjwt,checkpermission("Templates-Create"),upload.single("file"),createtemplate);
 
 //delete apis
-templaterouter.route("/deletetemplate/:id").delete(verifyjwt,deletetemplate)
+templaterouter.route("/deletetemplate/:id").delete(verifyjwt,checkpermission("Templates-Delete"),deletetemplate)
 
 //get apis
 templaterouter.route("/template/:id").get(getsingletemplate)
-templaterouter.route("/gettemplate").get(verifyjwt,checkpermission,gettemplate)
+templaterouter.route("/gettemplate").get(verifyjwt,checkpermission("Templates-View"),gettemplate)
 templaterouter.get("/template/:id/pdf", getTemplatePdf);

@@ -313,7 +313,14 @@ export const addcontact = asynchandler(async(req,res)=>{
 
 export const getuser = asynchandler(async(req,res)=>{
     const admin = req.user
-  const getuser = await user.find({addedby:admin._id})
+  const getuser = await user.find({
+  addedby: {
+    $in: [
+      admin._id,
+      admin.addedby
+    ].filter(Boolean)
+  }
+});
 
   if(!getuser){
     throw new Apierror(400,"User not found")

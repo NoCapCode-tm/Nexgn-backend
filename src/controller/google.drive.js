@@ -74,9 +74,15 @@ const { tokens } = await oauth2client.getToken(code);
 
 export const driveStatus = asynchandler(async(req,res)=>{
 
+     let driveuser;
+   if(req.user.role==="Admin"){
+    driveuser = req.user._id
+   }else{
+    driveuser = req.user.addedby
+   }
     const drive = await googledrive.findOne({
 
-        userId:req.user._id
+        userId:driveuser
 
     });
 

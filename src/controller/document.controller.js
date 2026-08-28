@@ -300,7 +300,7 @@ export const getdocument = asynchandler(async(req,res)=>{
     }
 
     const filtereddoc = documents.filter(
-  (d) => d.createdBy?._id?.toString() === admin._id.toString()
+  (d) => (d.createdBy?._id?.toString() === admin._id.toString() || d.createdBy?._id?.toString() === admin.addedby.toString()) && d.isDeleted === false
 );
 
 
@@ -343,11 +343,54 @@ export const getsingledocument = asynchandler(async(req,res)=>{
     if(!id){
         throw new Apierror(400,"Id not Found")
     }
-    const document = await doc.findById(id)
+    const document = await doc.findOne({_id:id,isDeleted:false})
     if(!document){
         throw new Apierror(404,"Template not Found")
     }
+    
 
     res.status(200)
     .json(new Apiresponse(200,"Template Fetched Successfully",document))
+})
+
+export const movetobin = asynchandler(async(req,res)=>{
+   const {id}= req.params
+
+    if(!id){
+        throw new Apierror(400,"Id not Found")
+    }
+    const document = await doc.findOne({_id:id,isDeleted:false})
+    if(!document){
+        throw new Apierror(404,"Document not Found")
+    }
+
+    document.isDeleted = true
+    await document.save()
+    
+
+    res.status(200)
+    .json(new Apiresponse(200,"Template Fetched Successfully",document))
+})
+
+export const cancelrequest = asynchandler(async(req,res)=>{
+   const {id}= req.params
+
+    if(!id){
+        throw new Apierror(400,"Id not Found")
+    }
+    const document = await doc.findOne({_id:id,isDeleted:false})
+    if(!document){
+        throw new Apierror(404,"Document not Found")
+    }
+
+    const requests = await signrequest.find({documentId:id})
+
+   const task =  requests.map(async(request)=>{
+    request.overallStatus="cancelled"
+    await request.save()
+   })
+   await Promise.all(task);
+
+   res.status(200)
+   .json(new Apiresponse(200,"Requests Cancelled Successfully"))
 })

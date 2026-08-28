@@ -1,17 +1,30 @@
-import { user } from "../models/user.models";
-import { asynchandler } from "../utils/Asynchandler.utils";
+import { user } from "../models/user.models.js";
+import { Apierror } from "../utils/Apierror.utils.js";
+import { asynchandler } from "../utils/Asynchandler.utils.js";
 
+export const checkpermission = (requiredPermission) =>
+    asynchandler(async (req, res, next) => {
 
-export const checkpermission = asynchandler(async(req,res,next)=>{
-    const admin = await user.findById(req.user._id)
+        const admin = await user.findById(req.user._id);
 
-    if(!admin){
-        throw new Apierror(401,"User Not Authorized")
-    }
+        if (!admin) {
+            throw new Apierror(
+                401,
+                "User Not Authorized"
+            );
+        }
 
-    if(admin.permissions.includes("Templates-View")){
-        next()
-    }else{
-        return ;
-    }
-})
+        const hasPermission =
+            admin.permissions?.includes(
+                requiredPermission
+            );
+
+        if (!hasPermission) {
+            throw new Apierror(
+                403,
+                "You do not have permission to perform this action"
+            );
+        }
+
+        return next();
+    });

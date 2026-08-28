@@ -13,6 +13,13 @@ export const createtemplate = asynchandler(async(req,res)=>{
    const body = req.body || {};
    const user = req.user
 
+   let driveuser;
+   if(req.user.role==="Admin"){
+    driveuser = req.user._id
+   }else{
+    driveuser = req.user.addedby
+   }
+
 const {
   title,
   content,
@@ -33,7 +40,7 @@ const {
     let temple;
     let driveLink = null;
     if(req.file){
-        const uploadedFile = await uploadFileToDrive(req.user._id,req.file); // ya uploadedFile.webViewLink
+        const uploadedFile = await uploadFileToDrive(driveuser,req.file); // ya uploadedFile.webViewLink
         temple = await template.create({
           name:title,
           file:uploadedFile,

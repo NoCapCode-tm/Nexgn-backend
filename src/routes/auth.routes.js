@@ -2,6 +2,7 @@ import {Router} from "express"
 import { addcontact, addpermission, adminsignup, changestatus, declineInvitation, deleteAdmin, getAdmin, getsubadmin, getuser, inviteadmin, loginAdmin, logout, notified0, resetpass, resetpassword, setpass, twofaenable, updateAdmin, verifyotp } from "../controller/admin.controller.js";
 import { verifyjwt } from "../middleware/auth.middleware.js";
 import { upload } from "../middleware/multer.middleware.js";
+import { checkpermission } from "../middleware/permission.middleware.js";
 
 export const adminrouter = Router();
 
@@ -15,9 +16,9 @@ adminrouter.post("/resetpassword", resetpass);
 adminrouter.post("/login", loginAdmin);
 adminrouter.post("/logout",verifyjwt,logout);
 adminrouter.post("/forgot-password",resetpassword);
-adminrouter.post("/delete",deleteAdmin);
+adminrouter.post("/delete",verifyjwt,checkpermission("Contact Books-Delete"),deleteAdmin);
 adminrouter.post("/invite",verifyjwt,inviteadmin);
-adminrouter.post("/addcontact",verifyjwt,addcontact);
+adminrouter.post("/addcontact",verifyjwt,checkpermission("Contact Books-Add"),addcontact);
 adminrouter.post("/setpassword",setpass);
 
 //put apsi
@@ -29,7 +30,7 @@ adminrouter.put(
 );
 
 //get apis
-adminrouter.get("/getuser",verifyjwt,getuser);
+adminrouter.get("/getuser",verifyjwt,checkpermission("Contact Books-View"),getuser);
 adminrouter.get("/twofa", verifyjwt,twofaenable);
 adminrouter.get("/me", verifyjwt,getAdmin);
 adminrouter.get("/getsubadmin",verifyjwt,getsubadmin);

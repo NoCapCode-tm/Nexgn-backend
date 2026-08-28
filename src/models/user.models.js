@@ -77,6 +77,7 @@ const UserSchema = mongoose.Schema({
     addedby:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"user",
+        default:null
     },
     twoFAenabled:{
         type:Boolean,
@@ -102,9 +103,10 @@ UserSchema.methods.isPasswordcorrect = async function(password){
 
 UserSchema.methods.AccessToken = function(){
     return jwt.sign({
-        email:this.email,
         _id:this.id,
-        name:this.name
+        role:this.role,
+        addedby:this.addedby,
+
     },
     process.env.TOKEN,
     {

@@ -47,6 +47,10 @@ const DocumentSchema = new mongoose.Schema({
             "cancelled"
         ],
         default:"draft"
+    },
+    isDeleted:{
+        type:Boolean,
+        default:false
     }
 
 },{timestamps:true});

@@ -262,10 +262,15 @@ export const submitdoc = asynchandler(async (req, res) => {
             "Original PDF not found"
         );
     }
-
+let driveuser;
+   if(request.senderId.role==="Admin"){
+    driveuser = request.senderId._id
+   }else{
+    driveuser = request.senderId.addedby
+   }
     const originalPdfBuffer =
         await downloadFileFromDrive(
-            request.senderId._id,
+            driveuser,
             driveFileId
         );
 
@@ -300,7 +305,7 @@ export const submitdoc = asynchandler(async (req, res) => {
 
     const signedDriveUpload =
         await uploadCertificateToDrive(
-            request.senderId._id,
+            driveuser,
             signedPdfBuffer,
             `${document.title}-signed.pdf`
         );
@@ -447,7 +452,7 @@ export const submitdoc = asynchandler(async (req, res) => {
 
     const certificateDriveUpload =
         await uploadCertificateToDrive(
-            request.senderId._id,
+            driveuser,
             certificatePdfBuffer,
             `${generatedCertificateId}.pdf`
         );
