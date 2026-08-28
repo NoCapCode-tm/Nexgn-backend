@@ -85,6 +85,7 @@ const UserSchema = mongoose.Schema({
     twoFAsecret:{
         type:String,
     },
+    permissions:[String]
 
 },{timestamps:true})
 

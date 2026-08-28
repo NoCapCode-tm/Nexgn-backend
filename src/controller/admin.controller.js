@@ -464,11 +464,8 @@ export const declineInvitation = asynchandler(async (req, res) => {
     //         status:"Success"
     //     })
 
-    return res.send(`
-        <h2>Invitation Declined</h2>
-        <p>You have successfully declined the invitation.</p>
-    `);
-
+    res.status(200)
+    .json(new Apiresponse(201,"Invite declined successfully"))
 });
 
 export const setpass = asynchandler(async(req,res)=>{

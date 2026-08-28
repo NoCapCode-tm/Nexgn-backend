@@ -199,9 +199,12 @@ export default function SubAdminInviteEmail({
   recipientName = "there",
   inviterFirstName = "A teammate",
   organizationName = "their workspace",
-  acceptUrl = "",
-  denyUrl = "",
+  email,
+  
 }) {
+  acceptUrl = `https://sign.nexgn.cloud/mail-invite/${email}`;
+  denyUrl = `https://sign.nexgn.cloud/invite-deny/${email}`;
+
   return (
     <Html>
       <Head>
