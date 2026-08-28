@@ -663,3 +663,23 @@ await resend.emails.send({
     .json(new Apiresponse(200,"User verified Successfully",admin))
     //checking
 })
+
+export const addpermission = asynchandler(async(req,res)=>{
+    const {id,permissions} = req.body
+
+    if(!permissions){
+        throw new Apierror(400,"Please fill all the required fields")
+    }
+
+    const subadmin = await user.findById(id)
+    if(!subadmin){
+        throw new Apierror(401,"User not Authorized")
+    }
+
+    subadmin.permissions = permissions
+    await subadmin.save()
+
+    res.status(200)
+    .json(new Apiresponse(200,"Permissions Added successfully",subadmin))
+
+})

@@ -3,6 +3,7 @@ import { adminsignup, deleteAdmin, getAdmin, loginAdmin, logout } from "../contr
 import { verifyjwt } from "../middleware/auth.middleware.js";
 import { createtemplate, deletetemplate, getsingletemplate, gettemplate, getTemplatePdf } from "../controller/Template.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
+import { checkpermission } from "../middleware/permission.middleware.js";
 
 export const templaterouter = Router();
 
@@ -14,5 +15,5 @@ templaterouter.route("/deletetemplate/:id").delete(verifyjwt,deletetemplate)
 
 //get apis
 templaterouter.route("/template/:id").get(getsingletemplate)
-templaterouter.route("/gettemplate").get(verifyjwt,gettemplate)
+templaterouter.route("/gettemplate").get(verifyjwt,checkpermission,gettemplate)
 templaterouter.get("/template/:id/pdf", getTemplatePdf);

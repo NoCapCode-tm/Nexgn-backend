@@ -92,7 +92,8 @@ export const gettemplate = asynchandler(async (req, res) => {
   const filteredtemp = templates.filter(
     (d) =>
       d.templateid?.createdby?._id?.toString() ===
-      admin._id.toString()
+      admin._id.toString() ||d.templateid?.createdby?._id?.toString() ===
+      admin.addedby.toString()
   );
 
   return res.status(200).json(
