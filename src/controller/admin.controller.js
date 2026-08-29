@@ -414,7 +414,13 @@ const response = await resend.emails.send({
 export const getsubadmin = asynchandler(async (req, res) => {
   const admin = req.user;
   
-   const teammates = await user.find({teamid:admin.teamid})
+   const teammates = await user.find({
+  teamid: admin.teamid,
+  role: {
+    $in: ["Admin", "Sub-Admin"]
+  },
+  deleted: false
+});
 
   res.status(200).json(
     new Apiresponse(
