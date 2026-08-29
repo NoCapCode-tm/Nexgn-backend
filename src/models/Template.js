@@ -34,7 +34,12 @@ const TemplateSchema = new mongoose.Schema({
    createdby:{
     type:mongoose.Schema.Types.ObjectId,
     ref:"user"
-   }
+   },
+   teamid:{
+           type:mongoose.Schema.Types.ObjectId,
+            ref:"team",
+            default:null
+         },
 },{timestamps:true});
 
 export const template = new mongoose.model("template",TemplateSchema)

@@ -38,21 +38,7 @@ const UserSchema = mongoose.Schema({
         type:String,
         default:null
     },
-    professional_details:{
-        org_id:{
-            type:String,
-        },
-        company_name:{
-            type:String,
-        },
-        team_size:{
-            type:String,
-        },
-        industry:{
-            type:String,
-        }
-
-    },
+    
     gender:{
         type:String
     },
@@ -74,10 +60,16 @@ const UserSchema = mongoose.Schema({
         enum:["Active","Not-Active","Declined"],
         default:"Not-Active"
     },
-    addedby:{
+    // addedby:{
+    //     type:mongoose.Schema.Types.ObjectId,
+    //     ref:"user",
+    //     default:null
+    // },
+    teamid:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"user",
-        default:null
+         ref:"team",
+         default:null
+
     },
     twoFAenabled:{
         type:Boolean,
@@ -105,7 +97,7 @@ UserSchema.methods.AccessToken = function(){
     return jwt.sign({
         _id:this.id,
         role:this.role,
-        addedby:this.addedby,
+        teamid:this.teamid,
 
     },
     process.env.TOKEN,

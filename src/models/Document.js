@@ -33,6 +33,12 @@ const DocumentSchema = new mongoose.Schema({
         ref:"user",
         required:true
     },
+    teamid:{
+            type:mongoose.Schema.Types.ObjectId,
+             ref:"team",
+             default:null
+    
+        },
      note:{
       type:String,
    },

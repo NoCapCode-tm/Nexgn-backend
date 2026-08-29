@@ -8,6 +8,7 @@ import { asynchandler } from "../utils/Asynchandler.utils.js";
 import { uploadFileToDrive } from "../utils/uploadfiletodrive.utils.js";
 import { activitylog } from "../models/ActivityLog.js";
 import { user } from "../models/user.models.js";
+import { team } from "../models/team.model.js";
 
 
 export const createtemplate = asynchandler(async(req,res)=>{
@@ -18,7 +19,8 @@ export const createtemplate = asynchandler(async(req,res)=>{
    if(req.user.role==="Admin"){
     driveuser = req.user._id
    }else{
-    driveuser = req.user.addedby
+    const team1 = await team.findById(req.user.teamid)
+    driveuser = team1.owner
    }
 
 const {
@@ -46,13 +48,15 @@ const {
           name:title,
           file:uploadedFile,
           note,
-          createdby:req.user._id
+          createdby:req.user._id,
+          teamid:req.user.teamid
     })
     }else{
         temple = await template.create({
           name:title,
           htmlcontent:content,
-          createdby:req.user._id
+          createdby:req.user._id,
+          teamid:req.user.teamid
     })
     }
     const widget1 =
@@ -99,9 +103,7 @@ export const gettemplate = asynchandler(async (req, res) => {
 
   const filteredtemp = templates.filter(
     (d) =>
-      d.templateid?.createdby?._id?.toString() ===
-      admin._id.toString() ||d.templateid?.createdby?._id?.toString() ===
-      admin.addedby.toString()
+      d.templateid?.createdby?.teamid?.toString() === req?.user?.teamid?.toString()
   );
 
   return res.status(200).json(
@@ -130,12 +132,13 @@ export const getTemplatePdf = async (req, res) => {
         message: "Template not found",
       });
     }
-    let driveuser ; 
-    if(created.role==="Admin"){
-      driveuser = created._id
-    }else{
-      driveuser=created.addedby
-    }
+    let driveuser;
+   if(req.user.role==="Admin"){
+    driveuser = req.user._id
+   }else{
+    const team = await team.findById(req.user.teamid)
+    driveuser = team.owner
+   }
 
     const driveAccount = await googledrive.findOne({
       userId: driveuser,

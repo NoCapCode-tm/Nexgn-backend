@@ -29,6 +29,7 @@ export const createdocument = asynchandler(async(req,res)=>{
               title,
               driveFileId:drivefileid,
               createdBy:req.user._id,
+              teamid:req.user.teamid,
               status:"draft",
               assignedto:applicants,
               note:note,
@@ -44,6 +45,7 @@ export const createdocument = asynchandler(async(req,res)=>{
               title,
               templateId:templateid,
               createdBy:req.user._id,
+              teamid:req.user.teamid,
               status:"draft",
               assignedto:applicants,
               note:note
@@ -67,7 +69,7 @@ expiresAt.setDate(
             name: signee.name,
             email: signee.email,
             role: "Member",
-            addedby:req.user._id,
+            teamid:req.user.teamid,
             password: `Nexgn-${signee.name}-${signee.email}`
         });
     }
@@ -291,21 +293,25 @@ await Promise.all(tasks);
 export const getdocument = asynchandler(async(req,res)=>{
   const admin = req.user 
 
-    const documents = await doc.find()
+    const documents = await doc.find({teamid:req.user.teamid})
   .populate("createdBy")
   .populate("templateId");
 
     if(!documents){
-      throw new Apierror(404,"No Template Found")
+      throw new Apierror(404,"No Documents Found")
     }
 
-    const filtereddoc = documents.filter(
-  (d) => (d.createdBy?._id?.toString() === admin._id.toString() || d.createdBy?._id?.toString() === admin.addedby.toString()) && d.isDeleted === false
-);
-
+//     const filtereddoc = documents.filter(
+//   (d) =>
+//     (
+//       d.createdBy?._id?.toString() === admin?._id?.toString() ||
+//       d.createdBy?._id?.toString() === admin?.addedby?.toString()
+//     ) &&
+//     d.isDeleted !== true
+// );
 
     res.status(200)
-    .json(new Apiresponse(200,"Documents Fetched Successfully",filtereddoc))
+    .json(new Apiresponse(200,"Documents Fetched Successfully",documents))
 })
 
 export const deletedocument = asynchandler(async(req,res)=>{

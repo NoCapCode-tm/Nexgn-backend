@@ -16,6 +16,7 @@ import { certificateTemplate } from "../emails/certificateTemplate.js";
 import { generateSignedDocumentPDF } from "../utils/generateSignedDocumentPDF.js.js";
 import crypto from "crypto";
 import { downloadFileFromDrive } from "../utils/downloadFileFromDrive.js";
+import { team } from "../models/team.model.js";
 
 
 
@@ -266,7 +267,8 @@ let driveuser;
    if(request.senderId.role==="Admin"){
     driveuser = request.senderId._id
    }else{
-    driveuser = request.senderId.addedby
+    const team1 = await team.findById(request.senderId.teamid)
+    driveuser = team1.owner
    }
     const originalPdfBuffer =
         await downloadFileFromDrive(

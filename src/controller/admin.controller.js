@@ -10,6 +10,7 @@ import { asynchandler } from "../utils/Asynchandler.utils.js";
 import { Resend } from 'resend';
 import { generateSecret,generateURI,verify} from "otplib";
 import QRCode from "qrcode";
+import { team} from "../models/team.model.js";
 
 
 
@@ -24,7 +25,7 @@ import QRCode from "qrcode";
         const existinguser = await user.findOne({
             $or:[{email}]
         })
-        if(!existinguser){  //commit !
+        if(existinguser){  //commit !
            throw new Apierror(400,"User already exists")
         }
        let orgid = `NGX-${companyname.split(" ")[0]}`
@@ -32,18 +33,29 @@ import QRCode from "qrcode";
             name,
             email,
             password,
-            professional_details:{
-               company_name:companyname,
-               industry,
-               org_id:orgid,
-               team_size,
-            },
+            // professional_details:{
+            //    company_name:companyname,
+            //    industry,
+            //    org_id:orgid,
+            //    team_size,
+            // },
             role:"Admin",
         })
 
+        const team = await team.create({
+             company_name:companyname,
+             industry,
+             org_id:orgid,
+             team_size,
+             owner:admin._id
+        })
+
+        admin.teamid=team._id
+        await admin.save()
+
         const activity = await activitylog.create({
             userId:admin._id,
-            action:"Account Created Successfully",
+            action:"Account & Team Created Successfully",
             status:"Success"
         })
       
@@ -292,10 +304,10 @@ export const addcontact = asynchandler(async(req,res)=>{
     emergency_contact:emergency,
     gender:gender,
     job_title:job,
-    langiage:language,
+    language:language,
     address:address,
     role:"Member",
-    addedby:admin._id
+    teamid:admin.teamid
   })
 
   const activity = await activitylog.create({
@@ -313,14 +325,7 @@ export const addcontact = asynchandler(async(req,res)=>{
 
 export const getuser = asynchandler(async(req,res)=>{
     const admin = req.user
-  const getuser = await user.find({
-  addedby: {
-    $in: [
-      admin._id,
-      admin.addedby
-    ].filter(Boolean)
-  }
-});
+  const getuser = await user.find({teamid:admin.teamid});
 
   if(!getuser){
     throw new Apierror(400,"User not found")
@@ -373,15 +378,17 @@ export const inviteadmin = asynchandler(async(req,res)=>{
     name,
     email,
     role:"Sub-Admin",
-    addedby:admin1._id
+    teamid:admin1.teamid
   })
+
+  const team1 = await team.findById(admin.teamid)
 
   const resend = new Resend(process.env.RESEND_API_KEY);
 
 const html = await renderSubAdminInviteEmail({
     recipientName: name,
     inviterFirstName: admin1.name,
-    organizationName: admin1.professional_details.company_name,
+    organizationName:team1.company_name ,
     email: email
 });
 
@@ -406,44 +413,14 @@ const response = await resend.emails.send({
 
 export const getsubadmin = asynchandler(async (req, res) => {
   const admin = req.user;
-
-  let team = [];
-
-  const superadmin = await user.findById(admin._id);
-
-  if (!superadmin) {
-    return res
-      .status(404)
-      .json(new Apiresponse(404, "User not found", []));
-  }
-
-  if (superadmin.role === "Sub-Admin") {
-    const addedby = await user.findById(superadmin.addedby);
-
-    const added = await user.find({
-      addedby: superadmin.addedby,
-      role: "Sub-Admin",
-    });
-
-    if (addedby) {
-      team.push(addedby);
-    }
-
-    team.push(...added);
-  } else {
-    const added1 = await user.find({
-      addedby: admin._id,
-      role: "Sub-Admin",
-    });
-
-    team.push(...added1);
-  }
+  
+   const team1 = await team.findById(admin.teamid)
 
   res.status(200).json(
     new Apiresponse(
       200,
       "Teammates fetched successfully",
-      team
+      team1
     )
   );
 });
@@ -461,6 +438,7 @@ export const declineInvitation = asynchandler(async (req, res) => {
     }
 
     invitedUser.status = "Declined";
+    invitedUser.teamid=null
     invitedUser.deleted = true;
 
     await invitedUser.save();

@@ -18,10 +18,10 @@ export const checkpermission = (requiredPermission) =>
         const hasPermission =
             admin.permissions?.includes(
                 requiredPermission
-            );
+            ) || admin.role === "Admin";
 
         if (!hasPermission) {
-            throw new Apiresponse(
+            throw new Apierror(
                 403,
                 "You do not have permission to perform this action",[]
             );
