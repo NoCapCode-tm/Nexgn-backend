@@ -97,7 +97,7 @@ export const gettemplate = asynchandler(async (req, res) => {
       path: "templateid",
       populate: {
         path: "createdby",
-        select: "_id name",
+        select: "_id name teamid",
       },
     });
 
