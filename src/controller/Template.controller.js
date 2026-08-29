@@ -133,10 +133,10 @@ export const getTemplatePdf = async (req, res) => {
       });
     }
     let driveuser;
-   if(req.user.role==="Admin"){
-    driveuser = req.user._id
+   if(created.role==="Admin"){
+    driveuser = created._id
    }else{
-    const team1 = await team.findById(req.user.teamid)
+    const team1 = await team.findById(created.teamid)
     driveuser = team1.owner
    }
 
