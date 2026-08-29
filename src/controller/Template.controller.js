@@ -136,8 +136,8 @@ export const getTemplatePdf = async (req, res) => {
    if(req.user.role==="Admin"){
     driveuser = req.user._id
    }else{
-    const team = await team.findById(req.user.teamid)
-    driveuser = team.owner
+    const team1 = await team.findById(req.user.teamid)
+    driveuser = team1.owner
    }
 
     const driveAccount = await googledrive.findOne({
