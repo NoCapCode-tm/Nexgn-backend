@@ -25,7 +25,7 @@ import { team} from "../models/team.model.js";
         const existinguser = await user.findOne({
             $or:[{email}]
         })
-        if(existinguser){  //commit !
+        if(existinguser){  
            throw new Apierror(400,"User already exists")
         }
        let orgid = `NGX-${companyname.split(" ")[0]}`
@@ -42,7 +42,7 @@ import { team} from "../models/team.model.js";
             role:"Admin",
         })
 
-        const team = await team.create({
+        const team1 = await team.create({
              company_name:companyname,
              industry,
              org_id:orgid,
@@ -50,7 +50,7 @@ import { team} from "../models/team.model.js";
              owner:admin._id
         })
 
-        admin.teamid=team._id
+        admin.teamid=team1._id
         await admin.save()
 
         const activity = await activitylog.create({
