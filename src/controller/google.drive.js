@@ -26,47 +26,51 @@ export const getAuthurl = asynchandler(async (req, res) => {
 
 });
 
-export const AuthCallback = asynchandler(async (req, res) => {
-  try {
-    const { code, state } = req.query;
-    const user = req.user;
+export const AuthCallback = asynchandler(async(req,res)=>{
+    try {
+      const { code, state } = req.query;
+      const user = req.user
 
-    const { tokens } = await oauth2client.getToken(code);
+const { tokens } = await oauth2client.getToken(code);
 
-    const drive = await googledrive.findOneAndUpdate(
-      { userId: user._id },
-      {
+ const drive = await googledrive.findOneAndUpdate(
+
+    {
+        userId: state
+    },
+
+    {
         refreshToken: tokens.refresh_token,
-        connected: true,
-      },
-      {
-        upsert: true,
-        new: true,
-      }
-    );
+        connected: true
+    },
 
-    if (drive.connected === true) {
-      await activitylog.create({
-        userId: user._id,
-        action: "Google Drive Connected",
-        status: "Success",
-      });
-    } else {
-      await activitylog.create({
-        userId: user._id,
-        action: "Google Drive Connection Failed",
-        status: "Failure",
-      });
+    {
+        upsert: true,
+        new: true
     }
 
-    return res
-      .status(200)
-      .json(new Apiresponse(200, "Google Drive Connected Successfully", drive));
-  } catch (error) {
-    console.error("Google Drive Auth Callback Error:", error.message);
-    throw new Apierror(500, error.message || "Failed to authenticate Google Drive");
+);
+
+  if(drive.connected === true){
+     const activity = await activitylog.create({
+             userId:user._id,
+             action:"Google Drive Connected",
+             status:"Success"
+         })
+  }else{
+    const activity = await activitylog.create({
+             userId:user._id,
+             action:"Google Drive Connection Failed",
+             status:"Failure"
+         })
   }
-});
+    
+        res.status(200)
+        .redirect("https://sign.nexgn.cloud/settings?drive=connected");
+    } catch (error) {
+        console.log("Something went wrong",error.message)
+    }
+})
 
 export const driveStatus = asynchandler(async(req,res)=>{
 
