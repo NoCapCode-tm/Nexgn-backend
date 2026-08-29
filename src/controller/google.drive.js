@@ -2,6 +2,7 @@
 import oauth2client from "../config/drive.config.js";
 import { activitylog } from "../models/ActivityLog.js";
 import { googledrive } from "../models/GoogleDrive.js";
+import { team } from "../models/team.model.js";
 import { Apiresponse } from "../utils/Apiresponse.utils.js";
 import { asynchandler } from "../utils/Asynchandler.utils.js";
 
@@ -78,7 +79,8 @@ export const driveStatus = asynchandler(async(req,res)=>{
    if(req.user.role==="Admin"){
     driveuser = req.user._id
    }else{
-    driveuser = req.user.addedby
+    const team1 =await team.findById(req.user.teamid)
+    driveuser = team1.owner
    }
     const drive = await googledrive.findOne({
 
