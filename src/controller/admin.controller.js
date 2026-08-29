@@ -414,13 +414,13 @@ const response = await resend.emails.send({
 export const getsubadmin = asynchandler(async (req, res) => {
   const admin = req.user;
   
-   const team1 = await team.findById(admin.teamid)
+   const teammates = await user.find({teamid:admin.teamid})
 
   res.status(200).json(
     new Apiresponse(
       200,
       "Teammates fetched successfully",
-      team1
+      teammates
     )
   );
 });
