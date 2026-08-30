@@ -125,10 +125,17 @@ export const loginAdmin = asynchandler(async(req,res)=>{
              action:"Login Successfull",
              status:"Success"
          })
+
+         if(loginuser.twoFAenabled===true){
+            res.status(200)
+            .json(new Apiresponse(200,"Login successfull",loginuser))
+         }else{
+            res.status(200)
+            .cookie("token",token,options)
+            .json(new Apiresponse(200,"Login successfull",loginuser))
+         }
  
-     res.status(200)
-     .cookie("token",token,options)
-     .json(new Apiresponse(200,"Login successfull",loginuser))
+    
    } catch (error) {
       console.log("Something went wrong")
    }
@@ -651,6 +658,42 @@ await resend.emails.send({
 });
 
     res.status(200)
+    .json(new Apiresponse(200,"User verified Successfully",admin))
+    //checking
+})
+
+export const verifyotplogin = asynchandler(async(req,res)=>{
+    const {token ,id} = req.body
+     const admin = await user.findById(id)
+    if(!admin){
+        throw new Apierror(401,"User not Authorized")
+    }
+
+    if(!token){
+        throw new Apierror(400,"Please fill all the required fields")
+    }
+
+    const veri = await verify({token,secret:admin.twoFAsecret})
+    if(!veri){
+        throw new Apierror(401,"User not authorized")
+    }
+
+     const token1 = await admin.AccessToken()
+     if(!token1){
+         throw new Apierror(400,"Token not generated")
+     }
+ 
+      const options = {
+     httpOnly:true,
+     secure:true,
+     sameSite:"None",
+     maxAge:9*60*60*1000
+   }
+ 
+
+
+    res.status(200)
+    .cookie("token",token1,options)
     .json(new Apiresponse(200,"User verified Successfully",admin))
     //checking
 })

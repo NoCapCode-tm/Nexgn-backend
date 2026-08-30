@@ -1,5 +1,5 @@
 import {Router} from "express"
-import { addcontact, addpermission, adminsignup, changestatus, declineInvitation, deleteAdmin, getAdmin, getsubadmin, getuser, inviteadmin, loginAdmin, logout, notified0, resetpass, resetpassword, setpass, twofaenable, updateAdmin, verifyotp } from "../controller/admin.controller.js";
+import { addcontact, addpermission, adminsignup, changestatus, declineInvitation, deleteAdmin, getAdmin, getsubadmin, getuser, inviteadmin, loginAdmin, logout, notified0, resetpass, resetpassword, setpass, twofaenable, updateAdmin, verifyotp, verifyotplogin } from "../controller/admin.controller.js";
 import { verifyjwt } from "../middleware/auth.middleware.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { checkpermission } from "../middleware/permission.middleware.js";
@@ -10,6 +10,7 @@ export const adminrouter = Router();
 adminrouter.post("/signup", adminsignup);
 adminrouter.post("/addpermissions", verifyjwt,addpermission);
 adminrouter.post("/twofaverify", verifyjwt,verifyotp);
+adminrouter.post("/twofaverifylogin",verifyotplogin);
 adminrouter.post("/verify", changestatus);
 adminrouter.post("/notified", notified0);
 adminrouter.post("/resetpassword", resetpass);
