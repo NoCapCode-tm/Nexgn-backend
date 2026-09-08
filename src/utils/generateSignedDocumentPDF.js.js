@@ -6,18 +6,58 @@ import {
 
 
 function dataUrlToBuffer(dataUrl) {
-    if (!dataUrl) return null;
+    if (!dataUrl || typeof dataUrl !== "string") {
+        return null;
+    }
 
-    const match = dataUrl.match(
-        /^data:image\/(png|jpeg|jpg);base64,(.+)$/
-    );
+    const commaIndex = dataUrl.indexOf(",");
 
-    if (!match) return null;
+    if (commaIndex === -1) {
+        return null;
+    }
 
-    return Buffer.from(
-        match[2],
-        "base64"
-    );
+    const base64 = dataUrl.slice(commaIndex + 1);
+
+    const buffer = Buffer.from(base64, "base64");
+
+    const type = detectImageType(buffer);
+
+    if (!type) {
+        console.error("Unsupported signature image format");
+        return null;
+    }
+
+    return {
+        buffer,
+        type
+    };
+}
+
+function detectImageType(buffer) {
+    if (!buffer || buffer.length < 4) {
+        return null;
+    }
+
+    // PNG
+    if (
+        buffer[0] === 0x89 &&
+        buffer[1] === 0x50 &&
+        buffer[2] === 0x4e &&
+        buffer[3] === 0x47
+    ) {
+        return "png";
+    }
+
+    // JPEG
+    if (
+        buffer[0] === 0xff &&
+        buffer[1] === 0xd8 &&
+        buffer[2] === 0xff
+    ) {
+        return "jpg";
+    }
+
+    return null;
 }
 
 
@@ -88,34 +128,42 @@ export const generateSignedDocumentPDF = async ({
             "signature"
         ) {
 
-            const imageBuffer =
-                dataUrlToBuffer(
-                    widget.value
-                );
+           const imageData = dataUrlToBuffer(widget.value);
+            console.log("========== SIGNATURE DEBUG ==========");
+    console.log("Value prefix:", widget.value?.slice(0, 50));
+    console.log("Data length:", widget.value?.length);
+    console.log("Image type:", imageData?.type);
+    console.log(
+        "First bytes:",
+        imageData
+            ? [...imageData.buffer.subarray(0, 12)]
+            : null
+    );
+    console.log("====================================");
 
-            if (!imageBuffer) {
-                continue;
-            }
+if (!imageData) {
+    continue;
+}
 
+let image;
 
-            let image;
+if (imageData.type === "png") {
+    const pngBytes = new Uint8Array(imageData.buffer);
 
-            if (
-                widget.value.startsWith(
-                    "data:image/png"
-                )
-            ) {
-                image =
-                    await pdfDoc.embedPng(
-                        imageBuffer
-                    );
-            } else {
-                image =
-                    await pdfDoc.embedJpg(
-                        imageBuffer
-                    );
-            }
+    image = await pdfDoc.embedPng(pngBytes);
 
+} else if (imageData.type === "jpg") {
+    const jpgBytes = new Uint8Array(imageData.buffer);
+
+    console.log("JPEG bytes:", jpgBytes.length);
+    console.log(
+        "JPEG SOI:",
+        jpgBytes[0],
+        jpgBytes[1]
+    );
+
+    image = await pdfDoc.embedJpg(jpgBytes);
+}
 
             page.drawImage(
                 image,

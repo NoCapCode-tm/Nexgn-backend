@@ -167,7 +167,7 @@ export const submitdoc = asynchandler(async (req, res) => {
     }
 
     const widgetDefinitions =
-        document.driveFileId
+        document.templateId === null
             ? (
                 await documentfield.findOne({
                     documentId:
@@ -254,7 +254,7 @@ export const submitdoc = asynchandler(async (req, res) => {
         });
 
     const driveFileId =
-        document.driveFileId ||
+        document.driveFileId.fileId ||
         document.templateId?.file?.fileId;
 
     if (!driveFileId) {
@@ -634,10 +634,10 @@ export const getdocumentwidgets = asynchandler(async(req,res)=>{
 
     let widgets = []
 
-    if(document.driveFileId){
+    if(document.templateId === null){
         const field = await documentfield.findOne({documentId:document._id})
         widgets = field?.widget || []
-    }else if(document.templateId){
+    }else{
         const tw = await templatewidget.findOne({templateid:document.templateId._id})
         widgets = tw?.widget || []
     }

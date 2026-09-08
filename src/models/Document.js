@@ -8,9 +8,20 @@ const DocumentSchema = new mongoose.Schema({
     },
 
     driveFileId:{
-        type:String,
-        default:null
-    },
+     fileId:{
+      type:String,
+     },
+     fileName:{
+      type:String,
+     },
+      webViewLink:{
+       type:String
+     },
+     downloadLink:{
+      type:String,
+     },
+    
+   },
     assignedto:[{
         name:{
             type:String,

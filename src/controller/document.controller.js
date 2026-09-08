@@ -7,12 +7,44 @@ import { Apierror } from "../utils/Apierror.utils.js";
 import { asynchandler } from "../utils/Asynchandler.utils.js";
 import { Apiresponse } from "../utils/Apiresponse.utils.js";
 import { activitylog } from "../models/ActivityLog.js";
+import { team } from "../models/team.model.js";
+import { uploadFileToDrive } from "../utils/uploadfiletodrive.utils.js";
+import { googledrive } from "../models/GoogleDrive.js";
+import { google } from "googleapis";
 
 
 
 export const createdocument = asynchandler(async(req,res)=>{
-    const { title, drivefileid , templateid , applicants , documentwidgets ,expiry ,note,senderip} = req.body
+    const { title, templateid , applicants , documentwidgets ,expiry ,note,senderip} = req.body
+    let documentwidget;
+    let applicant;
 
+
+    if (typeof applicants === "string") {
+  try {
+    applicant = JSON.parse(applicants);
+  } catch (error) {
+    throw new Apierror(400, "Invalid applicants format");
+  }
+}else{
+  applicant = applicants
+}
+
+if (typeof documentwidgets === "string") {
+  try {
+    documentwidget = JSON.parse(documentwidgets);
+  } catch (error) {
+    throw new Apierror(400, "Invalid document widgets format");
+  }
+}
+    let driveuser;
+       if(req.user.role==="Admin"){
+        driveuser = req.user._id
+       }else{
+        const team1 = await team.findById(req.user.teamid)
+        driveuser = team1.owner
+       }
+    
 
   if(!title || !applicants ||!senderip){
         throw new Apierror(400,"Please fill all the required fields")
@@ -24,20 +56,21 @@ export const createdocument = asynchandler(async(req,res)=>{
     }
 
       let document;
-        if(drivefileid){
+        if(req.file){
+          const uploadedFile = await uploadFileToDrive(driveuser,req.file);
             document = await doc.create({
               title,
-              driveFileId:drivefileid,
+              driveFileId:uploadedFile,
               createdBy:req.user._id,
               teamid:req.user.teamid,
               status:"draft",
-              assignedto:applicants,
+              assignedto:applicant,
               note:note,
            })
 
            const docwidget = await documentfield.create({
              documentId:document._id,
-             widget: documentwidgets
+             widget: documentwidget
            })
 
         }else{
@@ -58,7 +91,7 @@ expiresAt.setDate(
 );
        
         
-        const tasks = applicants.map(async (signee) => {
+        const tasks = applicant.map(async (signee) => {
 
     let member = await user.findOne({
         email: signee.email
@@ -400,3 +433,110 @@ export const cancelrequest = asynchandler(async(req,res)=>{
    res.status(200)
    .json(new Apiresponse(200,"Requests Cancelled Successfully"))
 })
+
+export const getdocPdf = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const document = await doc.findById(id);
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: "Document not found",
+      });
+    }
+
+    if (!document.driveFileId?.fileId) {
+      return res.status(404).json({
+        success: false,
+        message: "Drive file not found for this document",
+      });
+    }
+
+    const created = await user.findById(document.createdBy);
+
+    if (!created || created.deleted === true) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found or deleted",
+      });
+    }
+
+    let driveuser;
+
+    if (created.role === "Admin") {
+      driveuser = created._id;
+    } else {
+      const team1 = await team.findById(created.teamid);
+
+      if (!team1) {
+        return res.status(404).json({
+          success: false,
+          message: "Team not found",
+        });
+      }
+
+      driveuser = team1.owner;
+    }
+
+    const driveAccount = await googledrive.findOne({
+      userId: driveuser,
+      connected: true,
+    });
+
+    if (!driveAccount) {
+      return res.status(400).json({
+        success: false,
+        message: "Google Drive not connected",
+      });
+    }
+
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+
+    oauth2Client.setCredentials({
+      refresh_token: driveAccount.refreshToken,
+    });
+
+    const drive = google.drive({
+      version: "v3",
+      auth: oauth2Client,
+    });
+
+    const response = await drive.files.get(
+      {
+        fileId: document.driveFileId.fileId,
+        alt: "media",
+      },
+      {
+        responseType: "stream",
+      }
+    );
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${document.driveFileId.fileName || "document.pdf"}"`
+    );
+
+    response.data.on("error", (err) => {
+      console.error("Google Drive stream error:", err);
+    });
+
+    response.data.pipe(res);
+
+  } catch (err) {
+    console.error("getdocPdf error:", err);
+
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: err.message,
+      });
+    }
+  }
+};
