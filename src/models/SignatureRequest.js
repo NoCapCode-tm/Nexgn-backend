@@ -15,7 +15,8 @@ const SignatureRequestSchema = new mongoose.Schema({
         type:String,
     },
     expiresat:{
-        type:Date
+        type:Date,
+        default:null
     },
 
     recipient:{

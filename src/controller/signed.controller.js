@@ -627,7 +627,7 @@ export const getrequest = asynchandler(async(req,res)=>{
 export const getdocumentwidgets = asynchandler(async(req,res)=>{
     const {id} = req.params // documentId
 
-    const document = await doc.findById(id).populate("templateId")
+    const document = await doc.findById(id).populate("templateId").populate("createdBy")
     if(!document){
         throw new Apierror(404,"Document not Found")
     }

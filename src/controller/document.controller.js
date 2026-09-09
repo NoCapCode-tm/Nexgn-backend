@@ -15,7 +15,7 @@ import { google } from "googleapis";
 
 
 export const createdocument = asynchandler(async(req,res)=>{
-    const { title, templateid , applicants , documentwidgets ,expiry ,note,senderip} = req.body
+    const { title, templateid , applicants , documentwidgets ,expiry ,note,senderip ,pathname} = req.body
     let documentwidget;
     let applicant;
 
@@ -46,7 +46,7 @@ if (typeof documentwidgets === "string") {
        }
     
 
-  if(!title || !applicants ||!senderip){
+  if(!title || !applicants ||!senderip  || !pathname){
         throw new Apierror(400,"Please fill all the required fields")
          const activity = await activitylog.create({
              userId:req.user._id,
@@ -84,15 +84,23 @@ if (typeof documentwidgets === "string") {
               note:note
            })
         }
-        const expiresAt = new Date();
+       let expiresAt = null;
 
-expiresAt.setDate(
-    expiresAt.getDate() + Number(expiry)
-);
+if (pathname === "/request-signature") {
+    if (!expiry) {
+        throw new Apierror(400, "Expiry is required for request signature");
+    }
+
+    expiresAt = new Date();
+
+    expiresAt.setDate(
+        expiresAt.getDate() + Number(expiry)
+    );
+}
        
-        
+       let respons ; 
         const tasks = applicant.map(async (signee) => {
-
+     
     let member = await user.findOne({
         email: signee.email
     });
@@ -117,6 +125,13 @@ expiresAt.setDate(
         },
         overallStatus: "pending"
     });
+
+     
+                if(pathname ==="/sign-yourself"){
+                   respons = signature._id
+                }else{
+                  respons = document
+                }
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     
@@ -318,9 +333,10 @@ await Promise.all(tasks);
                     action:"Document Created Successfully",
                     status:"Success"
                 })
-
-        res.status(200)
-        .json(new Apiresponse(200,"Document Created Successfully",document))
+             
+                 res.status(200)
+                   .json(new Apiresponse(200,"Document Created Successfully",respons))
+        
 })
 
 export const getdocument = asynchandler(async(req,res)=>{
@@ -382,9 +398,9 @@ export const getsingledocument = asynchandler(async(req,res)=>{
     if(!id){
         throw new Apierror(400,"Id not Found")
     }
-    const document = await doc.findOne({_id:id,isDeleted:false})
+    const document = await doc.findOne({_id:id,isDeleted:false}).populate("templateId")
     if(!document){
-        throw new Apierror(404,"Template not Found")
+        throw new Apierror(404,"Document not Found")
     }
     
 
