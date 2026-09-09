@@ -30,6 +30,10 @@ const SignatureRequestSchema = new mongoose.Schema({
             default:null
        },
     },
+    viewcount:{
+        type:Number,
+        default:0
+    },
 
     overallStatus:{
         type:String,

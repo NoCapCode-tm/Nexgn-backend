@@ -33,8 +33,13 @@ export const statuschange = asynchandler(async(req,res)=>{
         throw new Apierror(404,"Request not found")
     }
 
-    request.overallStatus = "Viewed"
-    request.save()
+    if(request.overallStatus === "pending"){
+        request.overallStatus = "Viewed"
+        request.viewcount = request.viewcount+1;
+    }else if(request.overallStatus === "Viewed"){
+        request.viewcount = request.viewcount+1;
+    }
+    await request.save()
 
     res.status(200)
     .json(new Apiresponse(200,"Status changes Successfully",[]))
@@ -616,9 +621,14 @@ export const getrequest = asynchandler(async(req,res)=>{
         410,
         "Signature Request Expired"
     );
+}else{
+     if(request.overallStatus === "pending"){
+        request.overallStatus = "Viewed"
+        request.viewcount = request.viewcount+1;
+    }else if(request.overallStatus === "Viewed"){
+        request.viewcount = request.viewcount+1;
+    }
 }
-
-    request.status = "Viewed"
     await request.save()
 
     res.status(200)
@@ -696,7 +706,7 @@ export const signrequests = asynchandler(async(req,res)=>{
     throw new Apierror(401,"User Not Authorized")
   }
 
-  const request = await signrequest.find({senderId:admin._id})
+  const request = await signrequest.find().populate("recipient.userId")
 //   if(request.length<1){
 //     throw new Apierror(404,"No Request Found")
 //   }
