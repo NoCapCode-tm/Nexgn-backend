@@ -377,6 +377,11 @@ export const deletedocument = asynchandler(async(req,res)=>{
              status:"Failure"
          })
     }
+    const widget = await documentfield.findOne({documentId:id})
+    if(widget){
+      await documentfield.findByIdAndDelete(widget._id)
+    }
+        
 
     await doc.findByIdAndDelete(id)
 
@@ -425,6 +430,24 @@ export const movetobin = asynchandler(async(req,res)=>{
 
     res.status(200)
     .json(new Apiresponse(200,"Template Fetched Successfully",document))
+})
+export const restorefrombin = asynchandler(async(req,res)=>{
+   const {id}= req.params
+
+    if(!id){
+        throw new Apierror(400,"Id not Found")
+    }
+    const document = await doc.findOne({_id:id})
+    if(!document){
+        throw new Apierror(404,"Document not Found")
+    }
+
+    document.isDeleted = false
+    await document.save()
+    
+
+    res.status(200)
+    .json(new Apiresponse(200,"Document Restored Successfully",document))
 })
 
 export const cancelrequest = asynchandler(async(req,res)=>{

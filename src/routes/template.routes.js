@@ -1,7 +1,7 @@
 import {Router} from "express"
 import { adminsignup, deleteAdmin, getAdmin, loginAdmin, logout } from "../controller/admin.controller.js";
 import { verifyjwt } from "../middleware/auth.middleware.js";
-import { createtemplate, deletetemplate, getsingletemplate, gettemplate, getTemplatePdf } from "../controller/Template.controller.js";
+import { archivetemplate, createtemplate, deletetemplate, getsingletemplate, gettemplate, getTemplatePdf, restorefrombin } from "../controller/Template.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { checkpermission } from "../middleware/permission.middleware.js";
 
@@ -12,6 +12,8 @@ templaterouter.post("/create",verifyjwt,checkpermission("Templates-Create"),uplo
 
 //delete apis
 templaterouter.route("/deletetemplate/:id").delete(verifyjwt,checkpermission("Templates-Delete"),deletetemplate)
+templaterouter.route("/archivetemplate/:id").post(verifyjwt,checkpermission("Templates-Archive"),archivetemplate)
+templaterouter.route("/restore/:id").get(verifyjwt,checkpermission("Templates-Restore"),restorefrombin)
 
 //get apis
 templaterouter.route("/template/:id").get(getsingletemplate)

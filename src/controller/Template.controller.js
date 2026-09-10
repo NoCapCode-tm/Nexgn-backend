@@ -208,7 +208,9 @@ export const deletetemplate = asynchandler(async(req,res)=>{
              status:"Failure"
          })
     }
-
+    
+    const widget = await templatewidget.findOne({templateid:id})
+    await templatewidget.findByIdAndDelete(widget._id)
     await template.findByIdAndDelete(id)
     const activity = await activitylog.create({
              userId:user._id,
@@ -235,4 +237,45 @@ export const getsingletemplate = asynchandler(async(req,res)=>{
 
     res.status(200)
     .json(new Apiresponse(200,"Template Fetched Successfully",temple))
+})
+
+export const archivetemplate = asynchandler(async(req,res)=>{
+   const {id} = req.params
+
+   if(!id){
+    throw new Apierror(400,"Please fill all the required fields")
+   }
+
+   const temple = await template.findById(id)
+
+   if(!temple){
+    throw new Apierror(404,"Template Not Found")
+   }
+
+   temple.isDeleted = true
+   await temple.save()
+
+   res.status(200)
+   .json(new Apiresponse(200,"Template Archived Successfully",[]))
+
+})
+export const restorefrombin = asynchandler(async(req,res)=>{
+   const {id} = req.params
+
+   if(!id){
+    throw new Apierror(400,"Please fill all the required fields")
+   }
+
+   const temple = await template.findById(id)
+
+   if(!temple){
+    throw new Apierror(404,"Template Not Found")
+   }
+
+   temple.isDeleted = false
+   await temple.save()
+
+   res.status(200)
+   .json(new Apiresponse(200,"Template Restored Successfully",[]))
+
 })

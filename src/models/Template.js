@@ -36,10 +36,14 @@ const TemplateSchema = new mongoose.Schema({
     ref:"user"
    },
    teamid:{
-           type:mongoose.Schema.Types.ObjectId,
-            ref:"team",
-            default:null
-         },
+         type:mongoose.Schema.Types.ObjectId,
+         ref:"team",
+         default:null
+      },
+   isDeleted:{
+        type:Boolean,
+        default:false,
+   }
 },{timestamps:true});
 
 export const template = new mongoose.model("template",TemplateSchema)
