@@ -8,336 +8,439 @@ import { asynchandler } from "../utils/Asynchandler.utils.js";
 import { Apiresponse } from "../utils/Apiresponse.utils.js";
 import { activitylog } from "../models/ActivityLog.js";
 import { team } from "../models/team.model.js";
+import crypto from "crypto"
 import { uploadFileToDrive } from "../utils/uploadfiletodrive.utils.js";
 import { googledrive } from "../models/GoogleDrive.js";
 import { google } from "googleapis";
 
 
 
-export const createdocument = asynchandler(async(req,res)=>{
-    const { title, templateid , applicants , documentwidgets ,expiry ,note,senderip ,pathname} = req.body
+export const createdocument = asynchandler(async (req, res) => {
+    const {
+        title,
+        templateid,
+        applicants,
+        documentwidgets,
+        expiry,
+        note,
+        senderip,
+        pathname
+    } = req.body;
+
     let documentwidget;
     let applicant;
 
-
     if (typeof applicants === "string") {
-  try {
-    applicant = JSON.parse(applicants);
-  } catch (error) {
-    throw new Apierror(400, "Invalid applicants format");
-  }
-}else{
-  applicant = applicants
-}
-
-if (typeof documentwidgets === "string") {
-  try {
-    documentwidget = JSON.parse(documentwidgets);
-  } catch (error) {
-    throw new Apierror(400, "Invalid document widgets format");
-  }
-}
-    let driveuser;
-       if(req.user.role==="Admin"){
-        driveuser = req.user._id
-       }else{
-        const team1 = await team.findById(req.user.teamid)
-        driveuser = team1.owner
-       }
-    
-
-  if(!title || !applicants ||!senderip  || !pathname){
-        throw new Apierror(400,"Please fill all the required fields")
-         const activity = await activitylog.create({
-             userId:req.user._id,
-             action:"Document Creation Failed",
-             status:"Failure"
-         })
-    }
-
-      let document;
-        if(req.file){
-          const uploadedFile = await uploadFileToDrive(driveuser,req.file);
-            document = await doc.create({
-              title,
-              driveFileId:uploadedFile,
-              createdBy:req.user._id,
-              teamid:req.user.teamid,
-              status:"draft",
-              assignedto:applicant,
-              note:note,
-           })
-
-           const docwidget = await documentfield.create({
-             documentId:document._id,
-             widget: documentwidget
-           })
-
-        }else{
-            document = await doc.create({
-              title,
-              templateId:templateid,
-              createdBy:req.user._id,
-              teamid:req.user.teamid,
-              status:"draft",
-              assignedto:applicants,
-              note:note
-           })
+        try {
+            applicant = JSON.parse(applicants);
+        } catch (error) {
+            throw new Apierror(400, "Invalid applicants format");
         }
-       let expiresAt = null;
-
-if (pathname === "/request-signature") {
-    if (!expiry) {
-        throw new Apierror(400, "Expiry is required for request signature");
+    } else {
+        applicant = applicants;
     }
 
-    expiresAt = new Date();
+    if (typeof documentwidgets === "string") {
+        try {
+            documentwidget = JSON.parse(documentwidgets);
+        } catch (error) {
+            throw new Apierror(400, "Invalid document widgets format");
+        }
+    }
 
-    expiresAt.setDate(
-        expiresAt.getDate() + Number(expiry)
-    );
-}
-       
-       let respons ; 
-        const tasks = applicant.map(async (signee) => {
-     
-    let member = await user.findOne({
-        email: signee.email
-    });
+    let driveuser;
 
-    if (!member) {
-        member = await user.create({
-            name: signee.name,
-            email: signee.email,
-            role: "Member",
-            teamid:req.user.teamid,
-            password: `Nexgn-${signee.name}-${signee.email}`
+    if (req.user.role === "Admin") {
+        driveuser = req.user._id;
+    } else {
+        const team1 = await team.findById(req.user.teamid);
+
+        if (!team1) {
+            throw new Apierror(404, "Team not found");
+        }
+
+        driveuser = team1.owner;
+    }
+
+    if (!title || !applicants || !senderip || !pathname) {
+        throw new Apierror(400, "Please fill all the required fields");
+    }
+
+    let document;
+
+    if (req.file) {
+        const uploadedFile = await uploadFileToDrive(
+            driveuser,
+            req.file
+        );
+
+        document = await doc.create({
+            title,
+            driveFileId: uploadedFile,
+            createdBy: req.user._id,
+            teamid: req.user.teamid,
+            status: "draft",
+            assignedto: applicant,
+            note
+        });
+
+        await documentfield.create({
+            documentId: document._id,
+            widget: documentwidget
+        });
+    } else {
+        document = await doc.create({
+            title,
+            templateId: templateid,
+            createdBy: req.user._id,
+            teamid: req.user.teamid,
+            status: "draft",
+            assignedto: applicant,
+            note
         });
     }
 
-    const signature = await signrequest.create({
-        documentId: document._id,
-        senderId: document.createdBy,
-        senderip:senderip,
-        expiresat: expiresAt,
-        recipient: {
-            userId: member._id
-        },
-        overallStatus: "pending"
-    });
+    let expiresAt = null;
 
-     
-                if(pathname ==="/sign-yourself"){
-                   respons = signature._id
-                }else{
-                  respons = document
-                }
+    if (pathname === "/request-signature") {
+        if (!expiry) {
+            throw new Apierror(
+                400,
+                "Expiry is required for request signature"
+            );
+        }
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    
-    
-    await resend.emails.send({
-        from: `Nexgn <${process.env.SMTP_USER}>`,
-        to: signee.email,
-        subject: "Your DOC is Ready to be Signed",
-        html: `<!DOCTYPE html>
+        expiresAt = new Date();
+
+        expiresAt.setDate(
+            expiresAt.getDate() + Number(expiry)
+        );
+    }
+
+    let respons;
+
+    const tasks = applicant.map(async (signee) => {
+        let member = await user.findOne({
+            email: signee.email
+        });
+
+        if (!member) {
+            member = await user.create({
+                name: signee.name,
+                email: signee.email,
+                role: "Member",
+                teamid: req.user.teamid,
+                password: `Nexgn-${signee.name}-${signee.email}`
+            });
+        }
+
+        const signerToken = crypto
+            .randomBytes(32)
+            .toString("hex");
+
+        const hashedSignerToken = crypto
+            .createHash("sha256")
+            .update(signerToken)
+            .digest("hex");
+
+        const signature = await signrequest.create({
+            documentId: document._id,
+            senderId: document.createdBy,
+            senderip,
+            expiresat: expiresAt,
+            signerToken: hashedSignerToken,
+            recipient: {
+                userId: member._id
+            },
+            overallStatus: "pending"
+        });
+
+        if (pathname === "/sign-yourself") {
+            respons = signature._id;
+        } else {
+            respons = document;
+        }
+
+        const resend = new Resend(
+            process.env.RESEND_API_KEY
+        );
+
+        await resend.emails.send({
+            from: `Nexgn <${process.env.SMTP_USER}>`,
+            to: signee.email,
+            subject: "Your DOC is Ready to be Signed",
+
+            html: `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
-  <head>
+
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>Nexgn</title>
+
     <style>
-      body {
-        margin: 0;
-        padding: 0;
-        background-color: #f5f7fa;
-        font-family: Arial, Helvetica, sans-serif;
-        color: #111827;
-      }
-      table {
-        border-spacing: 0;
-        border-collapse: collapse;
-      }
-      img {
-        border: 0;
-        display: block;
-        max-width: 100%;
-      }
-      .wrapper {
-        width: 100%;
-        background-color: #f5f7fa;
-        padding: 40px 0;
-      }
-      .container {
-        width: 100%;
-        max-width: 640px;
-        background-color: #ffffff;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-      }
-      .header {
-        padding: 28px 32px 20px;
-        text-align: center;
-        border-bottom: 1px solid #e5e7eb;
-      }
-      .logo {
-        font-size: 28px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        color: #16a34a;
-      }
-      .content {
-        padding: 32px;
-      }
-      .headline {
-        font-size: 24px;
-        line-height: 1.3;
-        font-weight: 700;
-        margin: 0 0 16px;
-        color: #111827;
-      }
-      .body-text {
-        font-size: 16px;
-        line-height: 1.7;
-        margin: 0 0 16px;
-        color: #374151;
-      }
-      .cta-wrap {
-        padding: 12px 0 8px;
-        text-align: center;
-      }
-      .cta {
-        display: inline-block;
-        background-color: #16a34a;
-        color: #ffffff !important;
-        text-decoration: none;
-        font-size: 16px;
-        font-weight: 700;
-        padding: 14px 24px;
-        border-radius: 10px;
-      }
-      .small-note {
-        font-size: 13px;
-        line-height: 1.6;
-        color: #6b7280;
-        margin-top: 16px;
-      }
-      .divider {
-        height: 1px;
-        background-color: #e5e7eb;
-        margin: 24px 0;
-      }
-      .footer {
-        padding: 24px 32px 32px;
-        font-size: 13px;
-        line-height: 1.6;
-        color: #6b7280;
-        text-align: center;
-        background-color: #fafafa;
-      }
-      .footer a {
-        color: #16a34a;
-        text-decoration: none;
-      }
-      @media screen and (max-width: 640px) {
-        .content,
-        .header,
-        .footer {
-          padding-left: 20px !important;
-          padding-right: 20px !important;
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #111827;
         }
+
+        table {
+            border-spacing: 0;
+            border-collapse: collapse;
+        }
+
+        img {
+            border: 0;
+            display: block;
+            max-width: 100%;
+        }
+
+        .wrapper {
+            width: 100%;
+            background-color: #f5f7fa;
+            padding: 40px 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 640px;
+            background-color: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+        }
+
+        .header {
+            padding: 28px 32px 20px;
+            text-align: center;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #16a34a;
+        }
+
+        .content {
+            padding: 32px;
+        }
+
         .headline {
-          font-size: 22px;
+            font-size: 24px;
+            line-height: 1.3;
+            font-weight: 700;
+            margin: 0 0 16px;
+            color: #111827;
         }
+
         .body-text {
-          font-size: 15px;
+            font-size: 16px;
+            line-height: 1.7;
+            margin: 0 0 16px;
+            color: #374151;
         }
+
+        .cta-wrap {
+            padding: 12px 0 8px;
+            text-align: center;
+        }
+
         .cta {
-          display: block;
-          width: 100%;
-          box-sizing: border-box;
+            display: inline-block;
+            background-color: #16a34a;
+            color: #ffffff !important;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 700;
+            padding: 14px 24px;
+            border-radius: 10px;
         }
-      }
+
+        .small-note {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #6b7280;
+            margin-top: 16px;
+        }
+
+        .divider {
+            height: 1px;
+            background-color: #e5e7eb;
+            margin: 24px 0;
+        }
+
+        .footer {
+            padding: 24px 32px 32px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #6b7280;
+            text-align: center;
+            background-color: #fafafa;
+        }
+
+        .footer a {
+            color: #16a34a;
+            text-decoration: none;
+        }
+
+        @media screen and (max-width: 640px) {
+            .content,
+            .header,
+            .footer {
+                padding-left: 20px !important;
+                padding-right: 20px !important;
+            }
+
+            .headline {
+                font-size: 22px;
+            }
+
+            .body-text {
+                font-size: 15px;
+            }
+
+            .cta {
+                display: block;
+                width: 100%;
+                box-sizing: border-box;
+            }
+        }
     </style>
-  </head>
-  <body>
-    <table class="wrapper" width="100%" cellpadding="0" cellspacing="0" role="presentation">
-      <tr>
-        <td align="center">
-          <table class="container" width="640" cellpadding="0" cellspacing="0" role="presentation">
-            <tr>
-              <td class="header">
-                <div class="logo">Nexgn</div>
-              </td>
-            </tr>
+</head>
 
-            <tr>
-              <td class="content">
-                <h1 class="headline">Welcome to Nexgn</h1>
+<body>
 
-                <p class="body-text">
-                  Hi ${signee.name},
-                </p>
+    <table
+        class="wrapper"
+        width="100%"
+        cellpadding="0"
+        cellspacing="0"
+        role="presentation"
+    >
+        <tr>
+            <td align="center">
 
-                <p class="body-text">
-                  We are glad to have you on board. Nexgn is built to make digital document signing simple, secure, and reliable for your business.
-                </p>
+                <table
+                    class="container"
+                    width="640"
+                    cellpadding="0"
+                    cellspacing="0"
+                    role="presentation"
+                >
+                    <tr>
+                        <td class="header">
+                            <div class="logo">Nexgn</div>
+                        </td>
+                    </tr>
 
-                <p class="body-text">
-                  To get started, please use the button below to continue:
-                </p>
+                    <tr>
+                        <td class="content">
 
-                <div class="cta-wrap">
-                  <a class="cta" href="https://sign.nexgn.cloud/document/${signature._id}" target="_blank">Sign Doc</a>
-                </div>
+                            <h1 class="headline">
+                                Welcome to Nexgn
+                            </h1>
 
-                <div class="divider"></div>
+                            <p class="body-text">
+                                Hi ${signee.name},
+                            </p>
 
-                <p class="small-note">
-                  If you have any questions, please reply to this email or contact our support team.
-                </p>
-              </td>
-            </tr>
+                            <p class="body-text">
+                                We are glad to have you on board.
+                                Nexgn is built to make digital
+                                document signing simple, secure,
+                                and reliable for your business.
+                            </p>
 
-            <tr>
-              <td class="footer">
-                <p style="margin:0 0 8px;">NoCapCode | Owner of Nexgn</p>
-                <p style="margin:0 0 8px;">
-                  <a href="https://nexgn.cloud" target="_blank">nexgn.com</a>
-                </p>
-                <p style="margin:0;">This is an automated message. Please do not share confidential access links.</p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
+                            <p class="body-text">
+                                To get started, please use the
+                                button below to continue:
+                            </p>
+
+                            <div class="cta-wrap">
+                                <a
+                                    class="cta"
+                                    href="${process.env.FRONTEND_URI}/document/${signerToken}"
+                                    target="_blank"
+                                >
+                                    Sign Doc
+                                </a>
+                            </div>
+
+                            <div class="divider"></div>
+
+                            <p class="small-note">
+                                If you have any questions,
+                                please reply to this email or
+                                contact our support team.
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td class="footer">
+
+                            <p style="margin:0 0 8px;">
+                                NoCapCode | Owner of Nexgn
+                            </p>
+
+                            <p style="margin:0 0 8px;">
+                                <a
+                                    href="https://nexgn.com"
+                                    target="_blank"
+                                >
+                                    nexgn.com
+                                </a>
+                            </p>
+
+                            <p style="margin:0;">
+                                This is an automated message.
+                                Please do not share confidential
+                                access links.
+                            </p>
+
+                        </td>
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
     </table>
-  </body>
-     `
+
+</body>
+
+</html>`
+        });
     });
 
+    await Promise.all(tasks);
+
+    document.status = "sent";
+
+    await document.save();
+
+    await activitylog.create({
+        userId: req.user._id,
+        refId: document._id,
+        refModel: "doc",
+        action: "Document Created Successfully",
+        status: "Success"
+    });
+
+    return res.status(200).json(
+        new Apiresponse(
+            200,
+            respons,
+            "Document Created Successfully"
+        )
+    );
 });
-
-await Promise.all(tasks);
-        
-
-        document.status = "sent";
-        await document.save()
-
-        const activity = await activitylog.create({
-                    userId:req.user._id,
-                    refId:document._id,
-                    refModel: "doc",
-                    action:"Document Created Successfully",
-                    status:"Success"
-                })
-             
-                 res.status(200)
-                   .json(new Apiresponse(200,"Document Created Successfully",respons))
-        
-})
 
 export const getdocument = asynchandler(async(req,res)=>{
   const admin = req.user 

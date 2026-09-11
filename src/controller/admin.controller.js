@@ -1,6 +1,6 @@
 
 import { renderResetPasswordEmail, renderSubAdminInviteEmail, renderTwoFAemail, renderVerifyEmail, renderWaitlistEmail } from "../emails/renderEmail.jsx";
-
+import crypto from "crypto";
 import { activitylog } from "../models/ActivityLog.js";
 import { notified } from "../models/notified.models.js";
 import { user } from "../models/user.models.js";
@@ -14,72 +14,103 @@ import { team} from "../models/team.model.js";
 
 
 
- export const adminsignup = asynchandler(async(req,res)=>{
-    try {
-        const {name,email,password,companyname,industry,team_size} =req.body
-    
-        if(!name ||!email || !password){
-            throw new Apierror(400,"Something went wrong")
-        }
-    
-        const existinguser = await user.findOne({
-            $or:[{email}]
-        })
-        if(existinguser){  
-           throw new Apierror(400,"User already exists")
-        }
-       let orgid = `NGX-${companyname.split(" ")[0]}`
-        const admin = await user.create({
-            name,
-            email,
-            password,
-            // professional_details:{
-            //    company_name:companyname,
-            //    industry,
-            //    org_id:orgid,
-            //    team_size,
-            // },
-            role:"Admin",
-        })
+export const adminsignup = asynchandler(async (req, res) => {
+    const {
+        name,
+        email,
+        password,
+        companyname,
+        industry,
+        team_size
+    } = req.body;
 
-        const team1 = await team.create({
-             company_name:companyname,
-             industry,
-             org_id:orgid,
-             team_size,
-             owner:admin._id
-        })
-
-        admin.teamid=team1._id
-        await admin.save()
-
-        const activity = await activitylog.create({
-            userId:admin._id,
-            action:"Account & Team Created Successfully",
-            status:"Success"
-        })
-      
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        const html = await renderVerifyEmail({
-    recipientName: admin.name,
-    verifyUrl: `${process.env.FRONTEND_URI}/verify/${admin._id}`,
-    createdAt: admin.createdAt
-});
-
-await resend.emails.send({
-    from: `Nexgn <${process.env.SMTP_USER}>`,
-    to: admin.email,
-    subject: "Verify your Nexgn email",
-    html
-});
-    
-        res.status(200)
-        .json(new Apiresponse(200,"Admin signed up successfully",admin))
-    } catch (error) {
-        console.log("Something went wrong in Signing up")
+    if (!name || !email || !password) {
+        throw new Apierror(400, "Something went wrong");
     }
 
-})
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existinguser = await user.findOne({
+        email: normalizedEmail
+    });
+
+    if (existinguser) {
+        throw new Apierror(400, "User already exists");
+    }
+
+    const orgid = `NGX-${companyname.split(" ")[0]}`;
+
+    const admin = await user.create({
+        name,
+        email: normalizedEmail,
+        password,
+        role: "Admin",
+        status: "Not-Active"
+    });
+
+    const team1 = await team.create({
+        company_name: companyname,
+        industry,
+        org_id: orgid,
+        team_size,
+        owner: admin._id
+    });
+
+    admin.teamid = team1._id;
+
+    // Generate secure verification token
+    const verificationToken = crypto
+        .randomBytes(32)
+        .toString("hex");
+
+    // Store only the hash in MongoDB
+    const hashedVerificationToken = crypto
+        .createHash("sha256")
+        .update(verificationToken)
+        .digest("hex");
+
+    admin.resetpasswordtoken = {
+        token: hashedVerificationToken,
+        expiresin: new Date(
+            Date.now() + 30 * 60 * 1000
+        )
+    };
+
+    await admin.save();
+
+    await activitylog.create({
+        userId: admin._id,
+        action: "Account & Team Created Successfully",
+        status: "Success"
+    });
+
+    const resend = new Resend(
+        process.env.RESEND_API_KEY
+    );
+
+    const html = await renderVerifyEmail({
+        recipientName: admin.name,
+        verifyUrl: `${process.env.FRONTEND_URI}/verify/${verificationToken}`,
+    });
+
+    await resend.emails.send({
+        from: `Nexgn <${process.env.SMTP_USER}>`,
+        to: admin.email,
+        subject: "Verify your Nexgn email",
+        html
+    });
+
+    return res.status(200).json(
+        new Apiresponse(
+            200,
+            {
+                userId: admin._id,
+                email: admin.email
+            },
+            "Admin signed up successfully. Please verify your email."
+        )
+    );
+});
 
 export const loginAdmin = asynchandler(async(req,res)=>{
    try {
@@ -528,70 +559,179 @@ await resend.emails.send({
 })
 
 
-export const resetpassword = asynchandler(async(req,res)=>{
-    const clicked = Date.now();
-    const {email} = req.body
+export const resetpassword = asynchandler(async (req, res) => {
+    const { email } = req.body;
 
-    const loginuser = await user.findOne({email:email})
-
-    if(!loginuser){
-       throw new Apierror(404,"User not found")
+    if (!email) {
+        throw new Apierror(400, "Email is required");
     }
 
-     const resend = new Resend(process.env.RESEND_API_KEY);
+    const normalizedEmail = email.trim().toLowerCase();
 
-const html = await renderResetPasswordEmail({
-    resetUrl: `${process.env.FRONTEND_URI}/reset/${loginuser._id}`,
-    createdAt: clicked
+    const loginuser = await user.findOne({
+        email: normalizedEmail
+    });
+
+    if (!loginuser) {
+        return res.status(200).json(
+            new Apiresponse(
+                200,
+                null,
+                "If an account exists with this email, a reset link has been sent."
+            )
+        );
+    }
+
+    
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
+
+    loginuser.resetpasswordtoken = {
+        token: hashedToken,
+        expiresin: new Date(Date.now() + 15 * 60 * 1000)
+    };
+
+    await loginuser.save();
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    const html = await renderResetPasswordEmail({
+        resetUrl: `${process.env.FRONTEND_URI}/reset/${resetToken}`,
+    });
+
+    await resend.emails.send({
+        from: `Nexgn <${process.env.SMTP_USER}>`,
+        to: normalizedEmail,
+        subject: "Reset your Nexgn password",
+        html
+    });
+
+    return res.status(200).json(
+        new Apiresponse(
+            200,
+            null,
+            "If an account exists with this email, a reset link has been sent."
+        )
+    );
 });
 
-await resend.emails.send({
-    from: `Nexgn <${process.env.SMTP_USER}>`,
-    to: email,
-    subject: "Reset your Nexgn password",
-    html
+export const changestatus = asynchandler(async (req, res) => {
+    const { id } = req.body;
+
+    if (!id) {
+        throw new Apierror(400, "Verification token is required");
+    }
+
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(id)
+        .digest("hex");
+
+    const admin1 = await user.findOne({
+        "resetpasswordtoken.token": hashedToken,
+        "resetpasswordtoken.expiresin": {
+            $gt: new Date()
+        }
+    });
+
+    if (!admin1) {
+        throw new Apierror(
+            400,
+            "Invalid or expired verification token"
+        );
+    }
+
+    if (admin1.status === "Active") {
+        throw new Apierror(
+            400,
+            "Email is already verified"
+        );
+    }
+
+    admin1.status = "Active";
+
+    admin1.emailverificationtoken = {
+        token: null,
+        expiresAt: null
+    };
+
+    await admin1.save();
+
+    await activitylog.create({
+        userId: admin1._id,
+        action: "Email Verified Successfully",
+        status: "Success"
+    });
+
+    return res.status(200).json(
+        new Apiresponse(
+            200,
+            null,
+            "Email verified successfully"
+        )
+    );
 });
 
-res.status(200)
-.json(new Apiresponse(200,"Reset link sent successfully",[]))
+export const resetpass = asynchandler(async (req, res) => {
+    const { id, password } = req.body;
 
-})
-
-export const changestatus = asynchandler(async(req,res)=>{
-    const {id ,status} = req.body
-
-    if(!id || !status){
-        throw new Apierror(400,"Please fill all the required fields")
+    if (!id || !password) {
+        throw new Apierror(
+            400,
+            "Token and password are required"
+        );
     }
 
-    const admin1 = await user.findById(id)
+    // if (password.length < 8) {
+    //     throw new Apierror(
+    //         400,
+    //         "Password must be at least 8 characters"
+    //     );
+    // }
 
+    
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(id)
+        .digest("hex");
 
-    admin1.status = status
-    admin1.save()
+    const loginuser = await user.findOne({
+        "resetpasswordtoken.token": hashedToken,
+        "resetpasswordtoken.expiresin": {
+            $gt: new Date()
+        }
+    });
 
-    res.status(200)
-    .json(new Apiresponse(200,"Status changed successfully",admin1))
-
-})
-
-export const resetpass = asynchandler(async(req,res)=>{
-    const {id,password} = req.body
-    if(!id){
-        throw new Apierror(400,"Please fill all the required fields")
+    if (!loginuser) {
+        throw new Apierror(
+            400,
+            "Invalid or expired reset token"
+        );
     }
 
-    const loginuser = await user.findById(id)
-    if(!loginuser){
-        throw new Apierror(404,"User not found")
-    }
+    
+    loginuser.password = password;
 
-    loginuser.password = password
-    loginuser.save()
+    loginuser.resetpasswordtoken = {
+        token: null,
+        expiresAt: null
+    };
 
-    res.status(200)
-    .json(new Apiresponse(200,"Password changed Successfully",loginuser))
-})
+    await loginuser.save();
+
+    return res.status(200).json(
+        new Apiresponse(
+            200,
+            null,
+            "Password changed successfully"
+        )
+    );
+});
 
 export const twofaenable = asynchandler(async(req,res)=>{
    

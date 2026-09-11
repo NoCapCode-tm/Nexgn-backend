@@ -18,6 +18,10 @@ const SignatureRequestSchema = new mongoose.Schema({
         type:Date,
         default:null
     },
+    signerToken: {
+    type: String,
+    default: null
+},
 
     recipient:{
 

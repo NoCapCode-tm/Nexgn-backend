@@ -28,6 +28,10 @@ const CertificateSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    signeddoc:{
+       type: String,
+      default: null,
+    },
 
     generatedAt: {
       type: Date,

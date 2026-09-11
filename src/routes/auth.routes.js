@@ -7,16 +7,16 @@ import { checkpermission } from "../middleware/permission.middleware.js";
 export const adminrouter = Router();
 
 //post apis
-adminrouter.post("/signup", adminsignup);
+adminrouter.post("/signup", adminsignup);//secured
 adminrouter.post("/addpermissions", verifyjwt,addpermission);
 adminrouter.post("/twofaverify", verifyjwt,verifyotp);
 adminrouter.post("/twofaverifylogin",verifyotplogin);
-adminrouter.post("/verify", changestatus);
+adminrouter.post("/verify", changestatus);//secured
 adminrouter.post("/notified", notified0);
-adminrouter.post("/resetpassword", resetpass);
+adminrouter.post("/resetpassword", resetpass);//secured
 adminrouter.post("/login", loginAdmin);
 adminrouter.post("/logout",verifyjwt,logout);
-adminrouter.post("/forgot-password",resetpassword);
+adminrouter.post("/forgot-password",resetpassword);//secured
 adminrouter.post("/delete",verifyjwt,checkpermission("Contact Books-Delete"),deleteAdmin);
 adminrouter.post("/invite",verifyjwt,inviteadmin);
 adminrouter.post("/addcontact",verifyjwt,checkpermission("Contact Books-Add"),addcontact);

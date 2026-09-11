@@ -10,7 +10,7 @@ import { upload } from "../middleware/multer.middleware.js";
 export const documentrouter = Router();
 
 //post apis
-documentrouter.route("/create").post(verifyjwt,checkpermission("Documents-Send for Signature"),upload.single("file"),createdocument)
+documentrouter.route("/create").post(verifyjwt,checkpermission("Documents-Send for Signature"),upload.single("file"),createdocument)//sexured
 
 
 //delete apis

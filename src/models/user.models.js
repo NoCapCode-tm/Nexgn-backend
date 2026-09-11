@@ -78,7 +78,17 @@ const UserSchema = mongoose.Schema({
     twoFAsecret:{
         type:String,
     },
-    permissions:[String]
+    permissions:[String],
+    resetpasswordtoken:{
+        token:{
+            type:String,
+            default:null,
+        },
+        expiresin:{
+          type:Date,
+          default:null
+        }
+    }
 
 },{timestamps:true})
 

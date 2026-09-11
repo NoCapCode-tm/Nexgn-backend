@@ -20,30 +20,71 @@ import { team } from "../models/team.model.js";
 
 
 
-export const statuschange = asynchandler(async(req,res)=>{
-    const {id} = req.body
+export const statuschange = asynchandler(async (req, res) => {
+    const { id, token } = req.body;
 
-    if(!id){
-        throw new Apierror(400,"Please fill all the reuired fields")
+    if (!id || !token) {
+        throw new Apierror(
+            400,
+            "Request ID and signer token are required"
+        );
     }
 
-    const request = await signrequest.findById(id)
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(token)
+        .digest("hex");
 
-    if(!request){
-        throw new Apierror(404,"Request not found")
+    const request = await signrequest.findOne({
+        _id: id,
+        signerToken: hashedToken
+    });
+
+    if (!request) {
+        throw new Apierror(404, "Request not found");
     }
 
-    if(request.overallStatus === "pending"){
-        request.overallStatus = "Viewed"
-        request.viewcount = request.viewcount+1;
-    }else if(request.overallStatus === "Viewed"){
-        request.viewcount = request.viewcount+1;
-    }
-    await request.save()
+    if (
+        request.expiresat &&
+        Date.now() >= request.expiresat.getTime()
+    ) {
+        request.overallStatus = "Expired";
+        await request.save();
 
-    res.status(200)
-    .json(new Apiresponse(200,"Status changes Successfully",[]))
-})
+        throw new Apierror(
+            410,
+            "Signature Request Expired"
+        );
+    }
+
+    if (
+        request.overallStatus === "completed" ||
+        request.overallStatus === "cancelled" ||
+        request.overallStatus === "Expired"
+    ) {
+        throw new Apierror(
+            400,
+            `Request is already ${request.overallStatus}`
+        );
+    }
+
+    if (request.overallStatus === "pending") {
+        request.overallStatus = "Viewed";
+        request.viewcount += 1;
+    } else if (request.overallStatus === "Viewed") {
+        request.viewcount += 1;
+    }
+
+    await request.save();
+
+    return res.status(200).json(
+        new Apiresponse(
+            200,
+            null,
+            "Status changed successfully"
+        )
+    );
+});
 
 const formatDate = (date) => {
   if (!date) return "N/A";
@@ -87,8 +128,15 @@ export const submitdoc = asynchandler(async (req, res) => {
         );
     }
 
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(sign)
+        .digest("hex");
+
     const request = await signrequest
-        .findById(sign)
+        .findOne({
+            signerToken: hashedToken
+        })
         .populate("documentId")
         .populate({
             path: "senderId",
@@ -102,35 +150,15 @@ export const submitdoc = asynchandler(async (req, res) => {
     if (!request) {
         throw new Apierror(
             404,
-            "No Request Found"
-        );
-    }
-
-    if (
-        request.overallStatus === "completed"
-    ) {
-        throw new Apierror(
-            400,
-            "Already signed"
-        );
-    }
-
-    if (
-        request.overallStatus === "Expired"
-    ) {
-        throw new Apierror(
-            410,
-            "Signature Request Expired"
+            "Invalid signing request"
         );
     }
 
     if (
         request.expiresat &&
-        Date.now() >=
-            request.expiresat.getTime()
+        Date.now() >= request.expiresat.getTime()
     ) {
         request.overallStatus = "Expired";
-
         await request.save();
 
         throw new Apierror(
@@ -139,10 +167,30 @@ export const submitdoc = asynchandler(async (req, res) => {
         );
     }
 
-    const document =
-        await doc.findById(
-            request.documentId._id
-        ).populate("templateId");
+    if (request.overallStatus === "completed") {
+        throw new Apierror(
+            400,
+            "Already signed"
+        );
+    }
+
+    if (request.overallStatus === "Expired") {
+        throw new Apierror(
+            410,
+            "Signature Request Expired"
+        );
+    }
+
+    if (request.overallStatus === "cancelled") {
+        throw new Apierror(
+            400,
+            "Signature Request has been cancelled"
+        );
+    }
+
+    const document = await doc
+        .findById(request.documentId._id)
+        .populate("templateId");
 
     if (!document) {
         throw new Apierror(
@@ -151,8 +199,7 @@ export const submitdoc = asynchandler(async (req, res) => {
         );
     }
 
-    const sender =
-        request.senderId;
+    const sender = request.senderId;
 
     if (!sender) {
         throw new Apierror(
@@ -161,8 +208,7 @@ export const submitdoc = asynchandler(async (req, res) => {
         );
     }
 
-    const receiver =
-        request.recipient.userId;
+    const receiver = request.recipient.userId;
 
     if (!receiver) {
         throw new Apierror(
@@ -175,67 +221,58 @@ export const submitdoc = asynchandler(async (req, res) => {
         document.templateId === null
             ? (
                 await documentfield.findOne({
-                    documentId:
-                        document._id
+                    documentId: document._id
                 }).lean()
             )?.widget || []
             : (
                 await templatewidget.findOne({
-                    templateid:
-                        document.templateId._id
+                    templateid: document.templateId._id
                 }).lean()
             )?.widget || [];
 
-    if (
-        widgetDefinitions.length === 0
-    ) {
+    if (widgetDefinitions.length === 0) {
         throw new Apierror(
             400,
             "No document widgets found"
         );
     }
 
-    const signedWidgets =
-        widgetDefinitions.map(
-            (definition, index) => {
+    const signedWidgets = widgetDefinitions.map(
+        (definition, index) => {
+            const submitted = widget.find(
+                item => item.index === index
+            );
 
-                const submitted =
-                    widget.find(
-                        item =>
-                            item.index === index
-                    );
+            return {
+                index,
 
-                return {
-                    index,
+                widgetname:
+                    definition.widgetname,
 
-                    widgetname:
-                        definition.widgetname,
+                page:
+                    definition.page,
 
-                    page:
-                        definition.page,
+                x:
+                    definition.x,
 
-                    x:
-                        definition.x,
+                y:
+                    definition.y,
 
-                    y:
-                        definition.y,
+                width:
+                    definition.width,
 
-                    width:
-                        definition.width,
+                height:
+                    definition.height,
 
-                    height:
-                        definition.height,
-
-                    value:
-                        submitted?.value || ""
-                };
-            }
-        );
+                value:
+                    submitted?.value || ""
+            };
+        }
+    );
 
     const existingSignature =
         await signature.findOne({
-            requestId:
-                request._id
+            requestId: request._id
         });
 
     if (existingSignature) {
@@ -247,11 +284,9 @@ export const submitdoc = asynchandler(async (req, res) => {
 
     const signatureRecord =
         await signature.create({
-            requestId:
-                request._id,
+            requestId: request._id,
 
             ipv4,
-
             ipv6,
 
             widget:
@@ -259,7 +294,7 @@ export const submitdoc = asynchandler(async (req, res) => {
         });
 
     const driveFileId =
-        document.driveFileId.fileId ||
+        document.driveFileId?.fileId ||
         document.templateId?.file?.fileId;
 
     if (!driveFileId) {
@@ -268,13 +303,26 @@ export const submitdoc = asynchandler(async (req, res) => {
             "Original PDF not found"
         );
     }
-let driveuser;
-   if(request.senderId.role==="Admin"){
-    driveuser = request.senderId._id
-   }else{
-    const team1 = await team.findById(request.senderId.teamid)
-    driveuser = team1.owner
-   }
+
+    let driveuser;
+
+    if (request.senderId.role === "Admin") {
+        driveuser = request.senderId._id;
+    } else {
+        const team1 = await team.findById(
+            request.senderId.teamid
+        );
+
+        if (!team1) {
+            throw new Apierror(
+                404,
+                "Sender team not found"
+            );
+        }
+
+        driveuser = team1.owner;
+    }
+
     const originalPdfBuffer =
         await downloadFileFromDrive(
             driveuser,
@@ -324,17 +372,6 @@ let driveuser;
         );
     }
 
-    document.signedFileId =
-        signedDriveUpload.fileId || null;
-
-    document.signedDownloadLink =
-        signedDriveUpload.downloadLink ||
-        null;
-
-    document.signedWebViewLink =
-        signedDriveUpload.webViewLink ||
-        null;
-
     await document.save();
 
     const signedAt =
@@ -345,6 +382,9 @@ let driveuser;
 
     request.recipient.signedAt =
         signedAt;
+
+    request.signerToken =
+        null;
 
     await request.save();
 
@@ -457,6 +497,11 @@ let driveuser;
                 signedAt
         });
 
+    signatureRecord.certificateId =
+        certificateRecord._id;
+
+    await signatureRecord.save();
+
     const certificateDriveUpload =
         await uploadCertificateToDrive(
             driveuser,
@@ -473,6 +518,9 @@ let driveuser;
 
     certificateRecord.pdfUrl =
         certificateDriveUpload.downloadLink;
+
+    certificateRecord.signeddoc =
+        signedDriveUpload.downloadLink;
 
     await certificateRecord.save();
 
@@ -552,6 +600,9 @@ let driveuser;
             "partially_signed";
     }
 
+    request.signerToken = null;
+    await request.save()
+
     await document.save();
 
     return res
@@ -559,7 +610,6 @@ let driveuser;
         .json(
             new Apiresponse(
                 200,
-                "Document Signed Successfully",
                 {
                     signature:
                         signatureRecord,
@@ -583,57 +633,97 @@ let driveuser;
                         signedDocumentHash,
 
                     signedAt
-                }
+                },
+                "Document Signed Successfully"
             )
         );
 });
 
-export const getrequest = asynchandler(async(req,res)=>{
-    const {id}= req.params
-    if(!id){
-        throw new Apierror(400,"Please fill the requestid")
+export const getrequest = asynchandler(async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) {
+        throw new Apierror(
+            400,
+            "Request ID and signer token are required"
+        );
     }
 
-    const request = await signrequest.findById(id).populate([
-        {
-            path: "documentId",
-            populate: {
-                path: "templateId",
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(id)
+        .digest("hex");
+
+    const request = await signrequest
+        .findOne({
+            signerToken: hashedToken
+        })
+        .populate([
+            {
+                path: "documentId",
+                populate: {
+                    path: "templateId"
+                }
             },
-        },
-        {
-            path: "senderId",
-        },
-    ])
-    if(!request){
-        throw new Apierror(400,"No Request Find")
+            {
+                path: "senderId",
+                select: "-password -twoFAsecret"
+            },
+            {
+                path: "recipient.userId",
+                select: "-password -twoFAsecret"
+            }
+        ]);
+
+    if (!request) {
+        throw new Apierror(
+            404,
+            "Invalid signing request"
+        );
     }
 
-   if (
-    request.expiresAt &&
-    Date.now() >= request.expiresAt.getTime()
-) {
-    request.overallStatus = "Expired";
+    if (
+        request.expiresat &&
+        Date.now() >= request.expiresat.getTime()
+    ) {
+        request.overallStatus = "Expired";
+
+        await request.save();
+
+        throw new Apierror(
+            410,
+            "Signature Request Expired"
+        );
+    }
+
+    if (
+        request.overallStatus === "completed" ||
+        request.overallStatus === "cancelled" ||
+        request.overallStatus === "Expired"
+    ) {
+        throw new Apierror(
+            400,
+            `Request is already ${request.overallStatus}`
+        );
+    }
+
+    if (request.overallStatus === "pending") {
+        request.overallStatus = "Viewed";
+        request.viewcount += 1;
+    } else if (request.overallStatus === "Viewed") {
+        request.viewcount += 1;
+    }
 
     await request.save();
 
-    throw new Apierror(
-        410,
-        "Signature Request Expired"
+    return res.status(200).json(
+        new Apiresponse(
+            200,
+            "Request fetched successfully",
+            request
+        )
     );
-}else{
-     if(request.overallStatus === "pending"){
-        request.overallStatus = "Viewed"
-        request.viewcount = request.viewcount+1;
-    }else if(request.overallStatus === "Viewed"){
-        request.viewcount = request.viewcount+1;
-    }
-}
-    await request.save()
-
-    res.status(200)
-    .json(new Apiresponse(200,"Request Fetched Successfully",request))
-})
+});
 export const getdocumentwidgets = asynchandler(async(req,res)=>{
     const {id} = req.params // documentId
 
@@ -656,48 +746,95 @@ export const getdocumentwidgets = asynchandler(async(req,res)=>{
     .json(new Apiresponse(200,"Widgets Fetched Successfully",{document,widgets}))
 })
 
-export const disapprove = asynchandler(async(req,res)=>{
-    const {id}= req.params
-    if(!id){
-        throw new Apierror(400,"Please fill the requestid")
+export const disapprove = asynchandler(async (req, res) => {
+    const { id, token } = req.params;
+
+    if (!id || !token) {
+        throw new Apierror(
+            400,
+            "Request ID and signer token are required"
+        );
     }
 
-    const request = await signrequest.findById(id)
-    if(!request){
-        throw new Apierror(400,"No Request Find")
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(token)
+        .digest("hex");
+
+    const request = await signrequest.findOne({
+        _id: id,
+        signerToken: hashedToken
+    });
+
+    if (!request) {
+        throw new Apierror(
+            404,
+            "Invalid signing request"
+        );
     }
 
-    request.overallStatus = "cancelled"
-    await request.save()
+    if (
+        request.expiresat &&
+        Date.now() >= request.expiresat.getTime()
+    ) {
+        request.overallStatus = "Expired";
+        await request.save();
 
-    const document = await doc.findById(request.documentId)
-    if(!document){
-        throw new Apierror(404,"No Document Found")
+        throw new Apierror(
+            410,
+            "Signature Request Expired"
+        );
     }
 
-    const requests = await signrequest.find({documentId :request.documentId})
-    if(!requests){
-        throw new Apierror(404,"No Requests Found")
+    if (
+        request.overallStatus === "completed" ||
+        request.overallStatus === "cancelled"
+    ) {
+        throw new Apierror(
+            400,
+            "Request cannot be cancelled"
+        );
     }
 
-     let total = requests.length
-     let reject = 0
-      for(let rs of requests){
-        if(rs.status === "cancelled"){
-             reject++;
-        }
+    request.overallStatus = "cancelled";
+    request.signerToken = null;
+
+    await request.save();
+
+    const document = await doc.findById(
+        request.documentId
+    );
+
+    if (!document) {
+        throw new Apierror(
+            404,
+            "No Document Found"
+        );
     }
 
-    if(reject === total){
-        document.status = "cancelled"
-        await document.save()
+    const requests = await signrequest.find({
+        documentId: request.documentId
+    });
+
+    const total = requests.length;
+
+    const rejected = requests.filter(
+        rs => rs.overallStatus === "cancelled"
+    ).length;
+
+    if (rejected === total) {
+        document.status = "cancelled";
+        await document.save();
     }
-     
 
-
-     res.status(200)
-    .json(new Apiresponse(200,"Request Fetched Successfully",request))
-})
+    return res.status(200).json(
+        new Apiresponse(
+            200,
+            null,
+            "Request cancelled successfully"
+        )
+    );
+});
 
 export const signrequests = asynchandler(async(req,res)=>{
   const admin = await user.findById(req.user._id)
@@ -706,11 +843,32 @@ export const signrequests = asynchandler(async(req,res)=>{
     throw new Apierror(401,"User Not Authorized")
   }
 
-  const request = await signrequest.find().populate("recipient.userId")
+  const request = await signrequest
+        .find()
+        .populate("documentId")
+        .populate({
+            path: "senderId",
+            select: "-password -twoFAsecret"
+        })
+        .populate({
+            path: "recipient.userId",
+            select: "-password -twoFAsecret"
+        });
 //   if(request.length<1){
 //     throw new Apierror(404,"No Request Found")
 //   }
 
   res.status(200)
   .json(new Apiresponse(200,"Requests Fetched Successfully",request))
+})
+
+export const getsignature = asynchandler(async(req,res)=>{
+    const sign = await signature.find().populate("certificateId")
+
+    if(sign.length===0){
+        throw new Apierror(404,"No Signature found in database")
+    }
+
+    res.status(200)
+    .json(new Apiresponse(200,"Signature fetched Successfully",sign))
 })

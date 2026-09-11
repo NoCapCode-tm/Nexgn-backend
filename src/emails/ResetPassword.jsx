@@ -51,7 +51,6 @@ const PX_MOBILE = "20px";
 
 export default function ResetPasswordEmail({
   resetUrl,
-  createdAt,
   expiresInMinutes = 15,
 }) {
   return (
