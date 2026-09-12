@@ -13,6 +13,7 @@ import {
     razorpayWebhook
 } from "./controller/razorpayWebhook.controller.js";
 import subscriptionrouter from "./routes/subscription.routes.js";
+import { globalRateLimiter } from "./middleware/rateLimit.middleware.js";
 
 
 const app = express();
@@ -45,6 +46,7 @@ app.post(
 );
 
 // Standard Middlewares
+app.use(globalRateLimiter);
 app.use(express.json({ limit: "16mb" }));
 app.use(express.urlencoded({ extended: true, limit: "16mb" }));
 app.use(express.static("public"));

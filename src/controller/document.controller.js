@@ -16,6 +16,7 @@ import { signature } from "../models/Signature.js";
 import { certificate } from "../models/Certificate.models.js";
 import { template } from "../models/Template.js";
 import { renderdocEmail } from "../emails/renderEmail.jsx";
+import { Contacts } from "../models/contact.model.js";
 
 
 
@@ -124,17 +125,15 @@ export const createdocument = asynchandler(async (req, res) => {
     let respons;
 
     const tasks = applicant.map(async (signee) => {
-        let member = await user.findOne({
+        let member = await Contacts.findOne({
             email: signee.email
         });
 
         if (!member) {
-            member = await user.create({
+            member = await Contacts.create({
                 name: signee.name,
                 email: signee.email,
-                role: "Member",
                 teamid: req.user.teamid,
-                password: `Nexgn-${signee.name}-${signee.email}`
             });
         }
 

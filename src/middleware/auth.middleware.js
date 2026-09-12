@@ -25,6 +25,12 @@ const verifyjwt = asynchandler(async (req, _, next) => {
     if (!verifieduser) {
       throw new Apierror(404, "User not found");
     }
+    if (verifieduser.status !== "Active") {
+  throw new Apierror(
+    403,
+    "Your account is not active"
+  );
+}
 
     req.user = verifieduser;
     next();
