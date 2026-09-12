@@ -33,7 +33,7 @@ import {
  * ---------------------------------------------------------------------------
  */
 
-const ASSET_URL = "https://prod.nexgn.cloud/template";
+const ASSET_URL = "https://prod.nexgn.cloud/stack";
 const HEART_ICON = `${ASSET_URL}/stamp.png`;
 const LINKEDIN_ICON = `${ASSET_URL}/linkedin.png`;
 const INSTAGRAM_ICON = `${ASSET_URL}/instagram.png`;
@@ -84,7 +84,7 @@ const emailHeadCss = `
     .legal-block { text-align: left !important; }
     .drop-cap-col { width: 56px !important; }
     .drop-cap-img { width: 56px !important; height: 120px !important; }
-    .doc-card-top { border-radius: 20px 20px 0 0 !important; }
+    .doc-card-top { border-radius: 50px 0 0 50px !important; }
     .doc-card-top-inner { padding: 10px 0px 0px 16px !important; }
     .doc-card-bottom { border-radius: 0 0 20px 20px !important; }
     .doc-btn-link { font-size: 13px !important; }
