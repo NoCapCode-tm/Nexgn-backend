@@ -12,6 +12,8 @@ import crypto from "crypto"
 import { uploadFileToDrive } from "../utils/uploadfiletodrive.utils.js";
 import { googledrive } from "../models/GoogleDrive.js";
 import { google } from "googleapis";
+import { signature } from "../models/Signature.js";
+import { certificate } from "../models/Certificate.models.js";
 
 
 
@@ -466,39 +468,72 @@ export const getdocument = asynchandler(async(req,res)=>{
     .json(new Apiresponse(200,"Documents Fetched Successfully",documents))
 })
 
-export const deletedocument = asynchandler(async(req,res)=>{
-    const {id}= req.params
-    const user = req.user
+export const deletedocument = asynchandler(async (req, res) => {
+    const { id } = req.params;
 
-    if(!id){
-        throw new Apierror(400,"Id not Found")
-         const activity = await activitylog.create({
-             userId:user._id,
-             refId:id,
-             refModel: "doc",
-             action:"Document deletion Failed",
-             status:"Failure"
-         })
+    if (!id) {
+        throw new Apierror(400, "Id not Found");
     }
-    const widget = await documentfield.findOne({documentId:id})
-    if(widget){
-      await documentfield.findByIdAndDelete(widget._id)
+
+    const document = await doc.findOneAndDelete({
+        _id: id,
+        teamid: req.user.teamid
+    });
+
+    if (!document) {
+        throw new Apierror(404, "Document not found");
     }
-        
 
-    await doc.findByIdAndDelete(id)
+    const requests = await signrequest.find({
+        documentId: document._id
+    });
 
-    const activity = await activitylog.create({
-                    userId:user._id,
-                    refId:id,
-                    refModel: "doc",
-                    action:"Document deleted Successfully",
-                    status:"Success"
-                })
+    const requestIds = requests.map((request) => request._id);
 
-    res.status(200)
-    .json(new Apiresponse(200,"Template Deleted Successfully",[]))
-})
+    const signatures = await signature.find({
+        requestId: { $in: requestIds }
+    });
+
+    const certificateIds = signatures
+        .map((item) => item.certificateId)
+        .filter(Boolean);
+
+    if (requestIds.length > 0) {
+        await signature.deleteMany({
+            requestId: { $in: requestIds }
+        });
+
+        await signrequest.deleteMany({
+            documentId: document._id
+        });
+    }
+
+    if (certificateIds.length > 0) {
+        await certificate.deleteMany({
+            _id: { $in: certificateIds }
+        });
+    }
+
+    await documentfield.deleteMany({
+        documentId: document._id
+    });
+
+    await activitylog.create({
+        userId: req.user._id,
+        refId: document._id,
+        refModel: "doc",
+        action: "Document deleted Successfully",
+        status: "Success"
+    });
+
+    return res.status(200).json(
+        new Apiresponse(
+            200,
+            "Document deleted successfully",
+            null
+        )
+    );
+});
 
 export const getsingledocument = asynchandler(async(req,res)=>{
      const {id}= req.params
@@ -506,7 +541,7 @@ export const getsingledocument = asynchandler(async(req,res)=>{
     if(!id){
         throw new Apierror(400,"Id not Found")
     }
-    const document = await doc.findOne({_id:id,isDeleted:false}).populate("templateId")
+    const document = await doc.findOne({_id:id,isDeleted:false,teamid:req.user.teamid}).populate("templateId")
     if(!document){
         throw new Apierror(404,"Document not Found")
     }
@@ -522,7 +557,7 @@ export const movetobin = asynchandler(async(req,res)=>{
     if(!id){
         throw new Apierror(400,"Id not Found")
     }
-    const document = await doc.findOne({_id:id,isDeleted:false})
+    const document = await doc.findOne({_id:id,isDeleted:false,teamid:req.user.teamid})
     if(!document){
         throw new Apierror(404,"Document not Found")
     }
@@ -540,7 +575,7 @@ export const restorefrombin = asynchandler(async(req,res)=>{
     if(!id){
         throw new Apierror(400,"Id not Found")
     }
-    const document = await doc.findOne({_id:id})
+    const document = await doc.findOne({_id:id,teamid:req.user.teamid})
     if(!document){
         throw new Apierror(404,"Document not Found")
     }
@@ -559,7 +594,7 @@ export const cancelrequest = asynchandler(async(req,res)=>{
     if(!id){
         throw new Apierror(400,"Id not Found")
     }
-    const document = await doc.findOne({_id:id,isDeleted:false})
+    const document = await doc.findOne({_id:id,isDeleted:false,teamid:req.user.teamid})
     if(!document){
         throw new Apierror(404,"Document not Found")
     }
@@ -579,8 +614,145 @@ export const cancelrequest = asynchandler(async(req,res)=>{
 export const getdocPdf = async (req, res) => {
   try {
     const { id } = req.params;
+    
+        if (!id) {
+            throw new Apierror(
+                400,
+                "Signer token is required"
+            );
+        }
+    
+        const hashedToken = crypto
+            .createHash("sha256")
+            .update(id)
+            .digest("hex");
 
-    const document = await doc.findById(id);
+            console.log(hashedToken)
+    
+        const request = await signrequest
+            .findOne({
+                signerToken: hashedToken
+            })
+    
+        if (!request) {
+            throw new Apierror(
+                404,
+                "Invalid signing request"
+            );
+        }
+    const document = await doc.findById(request.documentId);
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: "Document not found",
+      });
+    }
+
+    if (!document.driveFileId?.fileId) {
+      return res.status(404).json({
+        success: false,
+        message: "Drive file not found for this document",
+      });
+    }
+
+    const created = await user.findById(document.createdBy);
+
+    if (!created || created.deleted === true) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found or deleted",
+      });
+    }
+
+    let driveuser;
+
+    if (created.role === "Admin") {
+      driveuser = created._id;
+    } else {
+      const team1 = await team.findById(created.teamid);
+
+      if (!team1) {
+        return res.status(404).json({
+          success: false,
+          message: "Team not found",
+        });
+      }
+
+      driveuser = team1.owner;
+    }
+
+    const driveAccount = await googledrive.findOne({
+      userId: driveuser,
+      connected: true,
+    });
+
+    if (!driveAccount) {
+      return res.status(400).json({
+        success: false,
+        message: "Google Drive not connected",
+      });
+    }
+
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+
+    oauth2Client.setCredentials({
+      refresh_token: driveAccount.refreshToken,
+    });
+
+    const drive = google.drive({
+      version: "v3",
+      auth: oauth2Client,
+    });
+
+    const response = await drive.files.get(
+      {
+        fileId: document.driveFileId.fileId,
+        alt: "media",
+      },
+      {
+        responseType: "stream",
+      }
+    );
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${document.driveFileId.fileName || "document.pdf"}"`
+    );
+
+    response.data.on("error", (err) => {
+      console.error("Google Drive stream error:", err);
+    });
+
+    response.data.pipe(res);
+
+  } catch (err) {
+    console.error("getdocPdf error:", err);
+
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: err.message,
+      });
+    }
+  }
+};
+export const getinternaldocPdf = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+        if (!id) {
+            throw new Apierror(
+                400,
+                "Document id is required"
+            );
+        }
+    const document = await doc.findOne({_id:id,teamid:req.user.teamid});
 
     if (!document) {
       return res.status(404).json({

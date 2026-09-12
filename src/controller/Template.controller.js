@@ -8,7 +8,9 @@ import { asynchandler } from "../utils/Asynchandler.utils.js";
 import { uploadFileToDrive } from "../utils/uploadfiletodrive.utils.js";
 import { activitylog } from "../models/ActivityLog.js";
 import { user } from "../models/user.models.js";
+import crypto from "crypto"
 import { team } from "../models/team.model.js";
+import { signrequest } from "../models/SignatureRequest.js";
 
 
 export const createtemplate = asynchandler(async(req,res)=>{
@@ -117,11 +119,128 @@ export const gettemplate = asynchandler(async (req, res) => {
 
 export const getTemplatePdf = async (req, res) => {
   try {
-    const { id } = req.params;
+     const { id } = req.params;
+    
+        if (!id) {
+            throw new Apierror(
+                400,
+                "Template id is required"
+            );
+        }
+    
+      
+    const temple = await template.findOne({_id:id,teamid:req.user.teamid});
 
-    const temple = await template.findById(id);
+    const created = await user.findOne({_id:temple.createdby,teamid:temple.teamid})
+    if(!created|| created.deleted === true){
+      throw new Apierror(404,"User Not found or Deleted")
+    }
 
-    const created = await user.findById(temple.createdby)
+    if (!temple) {
+      return res.status(404).json({
+        success: false,
+        message: "Template not found",
+      });
+    }
+    let driveuser;
+   if(created.role==="Admin"){
+    driveuser = created._id
+   }else{
+    const team1 = await team.findById(created.teamid)
+    driveuser = team1.owner
+   }
+
+    const driveAccount = await googledrive.findOne({
+      userId: driveuser,
+      connected: true,
+    });
+
+    if (!driveAccount) {
+      return res.status(400).json({
+        success: false,
+        message: "Google Drive not connected",
+      });
+    }
+
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+
+    oauth2Client.setCredentials({
+      refresh_token: driveAccount.refreshToken,
+    });
+
+    const drive = google.drive({
+      version: "v3",
+      auth: oauth2Client,
+    });
+
+    const response = await drive.files.get(
+      {
+        fileId: temple.file.fileId, // <-- adjust according to your schema
+        alt: "media",
+      },
+      {
+        responseType: "stream",
+      }
+    );
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${temple.file.fileName}"`
+    );
+
+    response.data.pipe(res);
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+export const getexternalTemplatePdf = async (req, res) => {
+  try {
+     const { id } = req.params;
+    
+        if (!id) {
+            throw new Apierror(
+                400,
+                "Signer token is required"
+            );
+        }
+    
+        const hashedToken = crypto
+            .createHash("sha256")
+            .update(id)
+            .digest("hex");
+
+             console.log(hashedToken)
+    
+        const request = await signrequest
+            .findOne({
+                signerToken: hashedToken
+            })
+            .populate({
+                path: "documentId",
+                populate: {
+                    path: "templateId"
+                }
+            });
+    
+        if (!request) {
+            throw new Apierror(
+                404,
+                "Invalid signing request"
+            );
+        }
+    const temple = await template.findById(request.documentId.templateId._id);
+
+    const created = await user.findOne({_id:temple.createdby})
     if(!created|| created.deleted === true){
       throw new Apierror(404,"User Not found or Deleted")
     }
@@ -195,23 +314,25 @@ export const getTemplatePdf = async (req, res) => {
 };
 
 export const deletetemplate = asynchandler(async(req,res)=>{
-    const {id}= req.params
-    const user = req.user
+   const { id } = req.params;
 
-    if(!id){
-        throw new Apierror(400,"Id not Found")
-        const activity = await activitylog.create({
-             userId:user._id,
-             refId:id,
-             refModel: "template",
-             action:"Template Deletion Failed",
-             status:"Failure"
-         })
+    if (!id) {
+        throw new Apierror(400, "Id not Found");
     }
-    
-    const widget = await templatewidget.findOne({templateid:id})
-    await templatewidget.findByIdAndDelete(widget._id)
-    await template.findByIdAndDelete(id)
+
+    const temple = await template.findOneAndDelete({
+        _id: id,
+        teamid: req.user.teamid
+    });
+
+    if (!temple) {
+        throw new Apierror(404, "Document not found");
+    }
+
+    await templatewidget.deleteMany({
+        templateid: temple._id
+    });
+
     const activity = await activitylog.create({
              userId:user._id,
              refId:id,
@@ -220,9 +341,15 @@ export const deletetemplate = asynchandler(async(req,res)=>{
              status:"Success"
          })
 
-    res.status(200)
-    .json(new Apiresponse(200,"Template Deleted Successfully",[]))
+    return res.status(200).json(
+        new Apiresponse(
+            200,
+            "Template deleted successfully",
+            null
+        )
+    );
 })
+
 
 export const getsingletemplate = asynchandler(async(req,res)=>{
      const {id}= req.params
@@ -230,7 +357,7 @@ export const getsingletemplate = asynchandler(async(req,res)=>{
     if(!id){
         throw new Apierror(400,"Id not Found")
     }
-    const temple = await template.findById(id)
+    const temple = await template.findOne({_id:id,teamid:req.user.teamid})
     if(!temple){
         throw new Apierror(404,"Template not Found")
     }
@@ -246,7 +373,7 @@ export const archivetemplate = asynchandler(async(req,res)=>{
     throw new Apierror(400,"Please fill all the required fields")
    }
 
-   const temple = await template.findById(id)
+   const temple = await template.findOne({_id:id,teamid:req.user.teamid})
 
    if(!temple){
     throw new Apierror(404,"Template Not Found")
@@ -266,7 +393,7 @@ export const restorefrombin = asynchandler(async(req,res)=>{
     throw new Apierror(400,"Please fill all the required fields")
    }
 
-   const temple = await template.findById(id)
+   const temple = await template.findOne({_id:id,teamid:req.user.teamid})
 
    if(!temple){
     throw new Apierror(404,"Template Not Found")

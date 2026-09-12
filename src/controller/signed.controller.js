@@ -724,27 +724,131 @@ export const getrequest = asynchandler(async (req, res) => {
         )
     );
 });
-export const getdocumentwidgets = asynchandler(async(req,res)=>{
-    const {id} = req.params // documentId
+export const getdocumentwidgets = asynchandler(async (req, res) => {
+    const { id } = req.params;
 
-    const document = await doc.findById(id).populate("templateId").populate("createdBy")
-    if(!document){
-        throw new Apierror(404,"Document not Found")
+    if (!id) {
+        throw new Apierror(
+            400,
+            "Signer token is required"
+        );
     }
 
-    let widgets = []
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(id)
+        .digest("hex");
 
-    if(document.templateId === null){
-        const field = await documentfield.findOne({documentId:document._id})
-        widgets = field?.widget || []
-    }else{
-        const tw = await templatewidget.findOne({templateid:document.templateId._id})
-        widgets = tw?.widget || []
+    const request = await signrequest
+        .findOne({
+            signerToken: hashedToken
+        })
+        .populate({
+            path: "documentId",
+            populate: {
+                path: "templateId"
+            }
+        });
+
+    if (!request) {
+        throw new Apierror(
+            404,
+            "Invalid signing request"
+        );
     }
 
-    res.status(200)
-    .json(new Apiresponse(200,"Widgets Fetched Successfully",{document,widgets}))
-})
+
+    const document = request.documentId;
+
+    if (!document) {
+        throw new Apierror(
+            404,
+            "Document not found"
+        );
+    }
+
+    let widgets = [];
+
+    if (document.templateId === null) {
+        const field = await documentfield
+            .findOne({
+                documentId: document._id
+            })
+            .lean();
+
+        widgets = field?.widget || [];
+    } else {
+        const tw = await templatewidget
+            .findOne({
+                templateid: document.templateId._id
+            })
+            .lean();
+
+        widgets = tw?.widget || [];
+    }
+
+    return res.status(200).json(
+        new Apiresponse(
+            200,
+            "Widgets Fetched Successfully",
+            {
+                document,
+                widgets
+            },
+        )
+    );
+});
+export const getinternaldocumentwidgets = asynchandler(async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) {
+        throw new Apierror(
+            400,
+            "Document id is required"
+        );
+    }
+    
+   const document = await doc.findOne({_id:id,teamid:req.user.teamid}).populate("templateId");
+
+    if (!document) {
+        throw new Apierror(
+            404,
+            "Document not found"
+        );
+    }
+
+    let widgets = [];
+
+    if (document.templateId === null) {
+        const field = await documentfield
+            .findOne({
+                documentId: document._id
+            })
+            .lean();
+
+        widgets = field?.widget || [];
+    } else {
+        const tw = await templatewidget
+            .findOne({
+                templateid: document.templateId._id
+            })
+            .lean();
+
+        widgets = tw?.widget || [];
+    }
+
+    return res.status(200).json(
+        new Apiresponse(
+            200,
+            "Widgets Fetched Successfully",
+            {
+                document,
+                widgets
+            },
+            
+        )
+    );
+});
 
 export const disapprove = asynchandler(async (req, res) => {
     const { id, token } = req.params;
