@@ -27,8 +27,8 @@ import {
 // ---------------------------------------------------------------------------
 const ASSET_URL = "https://nexgn.cloud/template";
 const HEART_ICON = `${ASSET_URL}/stamp.png`;
-const LINKEDIN_ICON = `${ASSET_URL}/linkedin.png`;
-const SECOND_SOCIAL_ICON = `${ASSET_URL}/instagram.png`;
+const LINKEDIN_ICON = `${ASSET_URL}/LinkedIn.png`;
+const INSTAGRAM_ICON = `${ASSET_URL}/Instagram.png`;
 const SECOND_SOCIAL_URL = "https://instagram.com/nexgn";
 const RESET_CTA_IMG = `${ASSET_URL}/e.png`; // <-- confirm/replace filename
 
