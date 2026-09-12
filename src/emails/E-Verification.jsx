@@ -265,7 +265,7 @@ export default function VerifyEmail({
               </Column>
               <Column align="center">
                 <Link href="https://instagram.com/nexgn">
-                  <Img src={IG_ICON} width="24" height="24" alt="Instagram" />
+                  <Img src={INSTAGRAM_ICON} width="24" height="24" alt="Instagram" />
                 </Link>
               </Column>
             </Row>
