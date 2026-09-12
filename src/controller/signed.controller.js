@@ -962,8 +962,10 @@ export const signrequests = asynchandler(async(req,res)=>{
 //     throw new Apierror(404,"No Request Found")
 //   }
 
+const filterrequest = request.filter((r)=>r.documentId.teamid===req.user.teamid)
+
   res.status(200)
-  .json(new Apiresponse(200,"Requests Fetched Successfully",request))
+  .json(new Apiresponse(200,"Requests Fetched Successfully",filterrequest))
 })
 
 export const getsignature = asynchandler(async(req,res)=>{
