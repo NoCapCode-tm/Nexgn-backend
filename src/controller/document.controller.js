@@ -14,6 +14,7 @@ import { googledrive } from "../models/GoogleDrive.js";
 import { google } from "googleapis";
 import { signature } from "../models/Signature.js";
 import { certificate } from "../models/Certificate.models.js";
+import { template } from "../models/Template.js";
 
 
 
@@ -69,12 +70,14 @@ export const createdocument = asynchandler(async (req, res) => {
     }
 
     let document;
+    let viewURL;
 
     if (req.file) {
         const uploadedFile = await uploadFileToDrive(
             driveuser,
             req.file
         );
+        viewURL = uploadedFile.webViewLink;
 
         document = await doc.create({
             title,
@@ -91,6 +94,8 @@ export const createdocument = asynchandler(async (req, res) => {
             widget: documentwidget
         });
     } else {
+        const temple = await template.findById(templateid)
+        viewURL=temple.file.webViewLink
         document = await doc.create({
             title,
             templateId: templateid,
@@ -163,261 +168,23 @@ export const createdocument = asynchandler(async (req, res) => {
             respons = document;
         }
 
-        const resend = new Resend(
-            process.env.RESEND_API_KEY
-        );
 
+     const html = await renderdocEmail({
+            senderName: req.user.name,
+            documentName:title,
+            deadlineDate:signature.expiresat,
+            viewUrl:viewURL
+        });
+        
+            const resend = new Resend(
+                process.env.RESEND_API_KEY
+            );
+    
         await resend.emails.send({
             from: `Nexgn <${process.env.SMTP_USER}>`,
-            to: signee.email,
-            subject: "Your DOC is Ready to be Signed",
-
-            html: `<!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
-
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>Nexgn</title>
-
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #f5f7fa;
-            font-family: Arial, Helvetica, sans-serif;
-            color: #111827;
-        }
-
-        table {
-            border-spacing: 0;
-            border-collapse: collapse;
-        }
-
-        img {
-            border: 0;
-            display: block;
-            max-width: 100%;
-        }
-
-        .wrapper {
-            width: 100%;
-            background-color: #f5f7fa;
-            padding: 40px 0;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 640px;
-            background-color: #ffffff;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-        }
-
-        .header {
-            padding: 28px 32px 20px;
-            text-align: center;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .logo {
-            font-size: 28px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            color: #16a34a;
-        }
-
-        .content {
-            padding: 32px;
-        }
-
-        .headline {
-            font-size: 24px;
-            line-height: 1.3;
-            font-weight: 700;
-            margin: 0 0 16px;
-            color: #111827;
-        }
-
-        .body-text {
-            font-size: 16px;
-            line-height: 1.7;
-            margin: 0 0 16px;
-            color: #374151;
-        }
-
-        .cta-wrap {
-            padding: 12px 0 8px;
-            text-align: center;
-        }
-
-        .cta {
-            display: inline-block;
-            background-color: #16a34a;
-            color: #ffffff !important;
-            text-decoration: none;
-            font-size: 16px;
-            font-weight: 700;
-            padding: 14px 24px;
-            border-radius: 10px;
-        }
-
-        .small-note {
-            font-size: 13px;
-            line-height: 1.6;
-            color: #6b7280;
-            margin-top: 16px;
-        }
-
-        .divider {
-            height: 1px;
-            background-color: #e5e7eb;
-            margin: 24px 0;
-        }
-
-        .footer {
-            padding: 24px 32px 32px;
-            font-size: 13px;
-            line-height: 1.6;
-            color: #6b7280;
-            text-align: center;
-            background-color: #fafafa;
-        }
-
-        .footer a {
-            color: #16a34a;
-            text-decoration: none;
-        }
-
-        @media screen and (max-width: 640px) {
-            .content,
-            .header,
-            .footer {
-                padding-left: 20px !important;
-                padding-right: 20px !important;
-            }
-
-            .headline {
-                font-size: 22px;
-            }
-
-            .body-text {
-                font-size: 15px;
-            }
-
-            .cta {
-                display: block;
-                width: 100%;
-                box-sizing: border-box;
-            }
-        }
-    </style>
-</head>
-
-<body>
-
-    <table
-        class="wrapper"
-        width="100%"
-        cellpadding="0"
-        cellspacing="0"
-        role="presentation"
-    >
-        <tr>
-            <td align="center">
-
-                <table
-                    class="container"
-                    width="640"
-                    cellpadding="0"
-                    cellspacing="0"
-                    role="presentation"
-                >
-                    <tr>
-                        <td class="header">
-                            <div class="logo">Nexgn</div>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td class="content">
-
-                            <h1 class="headline">
-                                Welcome to Nexgn
-                            </h1>
-
-                            <p class="body-text">
-                                Hi ${signee.name},
-                            </p>
-
-                            <p class="body-text">
-                                We are glad to have you on board.
-                                Nexgn is built to make digital
-                                document signing simple, secure,
-                                and reliable for your business.
-                            </p>
-
-                            <p class="body-text">
-                                To get started, please use the
-                                button below to continue:
-                            </p>
-
-                            <div class="cta-wrap">
-                                <a
-                                    class="cta"
-                                    href="${process.env.FRONTEND_URI}/document/${signerToken}"
-                                    target="_blank"
-                                >
-                                    Sign Doc
-                                </a>
-                            </div>
-
-                            <div class="divider"></div>
-
-                            <p class="small-note">
-                                If you have any questions,
-                                please reply to this email or
-                                contact our support team.
-                            </p>
-
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td class="footer">
-
-                            <p style="margin:0 0 8px;">
-                                NoCapCode | Owner of Nexgn
-                            </p>
-
-                            <p style="margin:0 0 8px;">
-                                <a
-                                    href="https://nexgn.com"
-                                    target="_blank"
-                                >
-                                    nexgn.com
-                                </a>
-                            </p>
-
-                            <p style="margin:0;">
-                                This is an automated message.
-                                Please do not share confidential
-                                access links.
-                            </p>
-
-                        </td>
-                    </tr>
-                </table>
-
-            </td>
-        </tr>
-    </table>
-
-</body>
-
-</html>`
+            to: admin.email,
+            subject: "Your Signed Document",
+            html
         });
     });
 

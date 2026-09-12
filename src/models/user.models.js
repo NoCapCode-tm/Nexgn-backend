@@ -108,6 +108,7 @@ UserSchema.methods.AccessToken = function(){
         _id:this.id,
         role:this.role,
         teamid:this.teamid,
+        name:this.name
 
     },
     process.env.TOKEN,

@@ -7,6 +7,7 @@ import ResetPasswordEmail from "./ResetPassword.jsx";
 import VerifyEmail from "./E-Verification.jsx";
 import DocumentSignedEmail from "./Doc-Signed.jsx";
 import TwoFactorEnabledEmail from "./2FAuth.jsx";
+import DocumentSignRequestEmail from "./Doc-Request.jsx";
 
 export const renderSubAdminInviteEmail = async (props) => {
     return await render(
@@ -39,5 +40,11 @@ export const renderResetPasswordEmail = async (props) => {
 export const renderVerifyEmail = async (props) => {
     return await render(
         React.createElement(VerifyEmail, props)
+    );
+};
+
+export const renderdocEmail = async (props) => {
+    return await render(
+        React.createElement(DocumentSignRequestEmail, props)
     );
 };
