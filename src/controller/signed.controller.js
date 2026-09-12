@@ -940,14 +940,15 @@ export const disapprove = asynchandler(async (req, res) => {
     );
 });
 
-export const signrequests = asynchandler(async(req,res)=>{
-  const admin = await user.findById(req.user._id)
+export const signrequests = asynchandler(async (req, res) => {
 
-  if(!admin){
-    throw new Apierror(401,"User Not Authorized")
-  }
+    const admin = await user.findById(req.user._id);
 
-  const request = await signrequest
+    if (!admin) {
+        throw new Apierror(401, "User Not Authorized");
+    }
+
+    const request = await signrequest
         .find()
         .populate("documentId")
         .populate({
@@ -958,16 +959,22 @@ export const signrequests = asynchandler(async(req,res)=>{
             path: "recipient.userId",
             select: "-password -twoFAsecret"
         });
-//   if(request.length<1){
-//     throw new Apierror(404,"No Request Found")
-//   }
 
-const filterrequest = request.filter((r)=>r.documentId.teamid===req.user.teamid)
+    const filterrequest = request.filter(
+        (r) =>
+            r.documentId &&
+            r.documentId.teamid &&
+            r.documentId.teamid.toString() === req.user.teamid.toString()
+    );
 
-  res.status(200)
-  .json(new Apiresponse(200,"Requests Fetched Successfully",filterrequest))
-})
-
+    return res.status(200).json(
+        new Apiresponse(
+            200,
+            "Requests Fetched Successfully",
+            filterrequest
+        )
+    );
+});
 export const getsignature = asynchandler(async(req,res)=>{
     const sign = await signature.find().populate("certificateId")
 
