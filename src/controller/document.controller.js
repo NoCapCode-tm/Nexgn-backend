@@ -71,15 +71,12 @@ export const createdocument = asynchandler(async (req, res) => {
     }
 
     let document;
-    let viewURL;
 
     if (req.file) {
         const uploadedFile = await uploadFileToDrive(
             driveuser,
             req.file
         );
-        viewURL = uploadedFile.webViewLink;
-
         document = await doc.create({
             title,
             driveFileId: uploadedFile,
@@ -95,8 +92,7 @@ export const createdocument = asynchandler(async (req, res) => {
             widget: documentwidget
         });
     } else {
-        const temple = await template.findById(templateid)
-        viewURL=temple.file.webViewLink
+
         document = await doc.create({
             title,
             templateId: templateid,
@@ -182,7 +178,8 @@ export const createdocument = asynchandler(async (req, res) => {
             senderName:req.user.name,
             documentName:title,
             deadlineDate:formattedDeadline,
-            viewUrl:viewURL
+            viewUrl:`${process.env.FRONTEND_URI}/document/${signerToken}`,
+            note:note
         });
         
             const resend = new Resend(

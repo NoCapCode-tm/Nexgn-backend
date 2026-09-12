@@ -204,6 +204,7 @@ export default function DocumentSignRequestEmail({
   documentName ,
   deadlineDate,
   viewUrl,
+  note
 }) {
   return (
     <Html>
@@ -252,6 +253,10 @@ export default function DocumentSignRequestEmail({
           <Section style={{ marginTop: 16 }} className="px">
             <Text style={styles.fieldLabel}>Document</Text>
             <Text style={styles.fieldValue}>{documentName}</Text>
+          </Section>
+          <Section style={{ marginTop: 16 }} className="px">
+            <Text style={styles.fieldLabel}>Note</Text>
+            <Text style={styles.fieldValue}>{note}</Text>
           </Section>
 
           {/* ---------------- View button ---------------- *
