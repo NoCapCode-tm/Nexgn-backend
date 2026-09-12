@@ -200,10 +200,10 @@ function TrustBadge({ icon, label, divider }) {
 }
 
 export default function DocumentSignRequestEmail({
-  senderName = "Sofia Martínez",
-  documentName = "Document Name or Reference ID",
-  deadlineDate = "[Deadline Date]",
-  viewUrl = "",
+  senderName ,
+  documentName ,
+  deadlineDate,
+  viewUrl,
 }) {
   return (
     <Html>

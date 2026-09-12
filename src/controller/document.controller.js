@@ -15,6 +15,7 @@ import { google } from "googleapis";
 import { signature } from "../models/Signature.js";
 import { certificate } from "../models/Certificate.models.js";
 import { template } from "../models/Template.js";
+import { renderdocEmail } from "../emails/renderEmail.jsx";
 
 
 
