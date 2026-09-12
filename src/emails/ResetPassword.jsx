@@ -25,7 +25,7 @@ import {
 // reference design shows an "X" icon instead; change SECOND_SOCIAL_ICON /
 // SECOND_SOCIAL_URL if you want X here instead of Instagram.
 // ---------------------------------------------------------------------------
-const ASSET_URL = "https://prod.nexgn.cloud/template";
+const ASSET_URL = "https://nexgn.cloud/template";
 const HEART_ICON = `${ASSET_URL}/stamp.png`;
 const LINKEDIN_ICON = `${ASSET_URL}/linkedin.png`;
 const SECOND_SOCIAL_ICON = `${ASSET_URL}/instagram.png`;
