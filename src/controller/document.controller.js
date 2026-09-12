@@ -179,7 +179,7 @@ export const createdocument = asynchandler(async (req, res) => {
     : "No expiry";
 
      const html = await renderdocEmail({
-            senderName: req.user.name,
+            senderName:req.user.name,
             documentName:title,
             deadlineDate:formattedDeadline,
             viewUrl:viewURL
@@ -191,7 +191,7 @@ export const createdocument = asynchandler(async (req, res) => {
     
         await resend.emails.send({
             from: `Nexgn <${process.env.SMTP_USER}>`,
-            to: admin.email,
+            to: signee.email,
             subject: "Your Signed Document",
             html
         });
