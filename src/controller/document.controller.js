@@ -168,12 +168,20 @@ export const createdocument = asynchandler(async (req, res) => {
         } else {
             respons = document;
         }
-
+    const formattedDeadline = signature.expiresat
+    ? new Date(signature.expiresat).toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    })
+    : "No expiry";
 
      const html = await renderdocEmail({
             senderName: req.user.name,
             documentName:title,
-            deadlineDate:signature.expiresat,
+            deadlineDate:formattedDeadline,
             viewUrl:viewURL
         });
         
