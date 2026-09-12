@@ -24,7 +24,7 @@ const UserSchema = mongoose.Schema({
     },
     role:{
         type:String,
-        enum:["Admin","Member","Sub-Admin"],
+        enum:["Admin","Sub-Admin"],
         required:true
     },
     profile_picture:{
@@ -78,6 +78,15 @@ const UserSchema = mongoose.Schema({
     twoFAsecret:{
         type:String,
     },
+    twoFAFailedAttempts: {
+  type: Number,
+  default: 0,
+},
+
+twoFABlockedUntil: {
+  type: Date,
+  default: null,
+},
     permissions:[String],
     resetpasswordtoken:{
         token:{
@@ -91,6 +100,17 @@ const UserSchema = mongoose.Schema({
     }
 
 },{timestamps:true})
+
+UserSchema.index({
+    teamid: 1,
+    deleted: 1,
+    role: 1
+});
+
+UserSchema.index({
+    "resetpasswordtoken.token": 1,
+    "resetpasswordtoken.expiresin": 1
+});
 
 UserSchema.pre("save",async function(){
     if(!this.isModified("password"))return null;

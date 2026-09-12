@@ -11,6 +11,7 @@ import { Resend } from 'resend';
 import { generateSecret,generateURI,verify} from "otplib";
 import QRCode from "qrcode";
 import { team} from "../models/team.model.js";
+import { Contacts } from "../models/contact.model.js";
 
 
 
@@ -212,8 +213,8 @@ export const deleteAdmin = asynchandler(async(req,res)=>{
 export const logout = asynchandler(async(req,res)=>{
     const options = {
   httpOnly: true,
-  secure: false,    
-  sameSite:"lax" ,
+  secure: true,    
+  sameSite:"None" ,
   maxAge:9*60*60*1000,
 }
  
@@ -304,7 +305,7 @@ export const updateAdmin = asynchandler(async (req, res) => {
 });
 
 export const addcontact = asynchandler(async(req,res)=>{
-  const {name,email,contact,emergency,gender,job,language,address} = req.body
+  const {name,email,contact,gender} = req.body
   const admin = req.user
 
   if(!admin){
@@ -324,7 +325,7 @@ export const addcontact = asynchandler(async(req,res)=>{
              status:"Failure"
          })
   }
-   const existinguser = await user.findOne({
+   const existinguser = await Contacts.findOne({
         $or:[{email}]
     })
     if(existinguser){
@@ -335,16 +336,11 @@ export const addcontact = asynchandler(async(req,res)=>{
              status:"Failure"
          })
     }
-  const contact1 = await user.create({
+  const contact1 = await Contacts.create({
     name:name,
     email:email,
     phone_no:contact,
-    emergency_contact:emergency,
     gender:gender,
-    job_title:job,
-    language:language,
-    address:address,
-    role:"Member",
     teamid:admin.teamid
   })
 
@@ -802,41 +798,117 @@ await resend.emails.send({
     //checking
 })
 
-export const verifyotplogin = asynchandler(async(req,res)=>{
-    const {token ,id} = req.body
-     const admin = await user.findById(id)
-    if(!admin){
-        throw new Apierror(401,"User not Authorized")
+export const verifyotplogin = asynchandler(async (req, res) => {
+  const { token, id } = req.body;
+
+  // Basic validation
+  if (!id || !token) {
+    throw new Apierror(400, "Verification code is required");
+  }
+
+  // OTP should always be exactly 6 digits
+  if (!/^\d{6}$/.test(String(token))) {
+    throw new Apierror(400, "Invalid authentication code");
+  }
+
+  const admin = await user.findById(id);
+
+  if (!admin) {
+    throw new Apierror(401, "Invalid authentication request");
+  }
+
+  // Make sure 2FA is actually enabled
+  if (!admin.twoFAenabled || !admin.twoFAsecret) {
+    throw new Apierror(400, "Two-factor authentication is not enabled");
+  }
+
+  // Check temporary lock
+  if (
+    admin.twoFABlockedUntil &&
+    admin.twoFABlockedUntil > new Date()
+  ) {
+    const remainingMs =
+      admin.twoFABlockedUntil.getTime() - Date.now();
+
+    const remainingMinutes = Math.ceil(
+      remainingMs / (60 * 1000)
+    );
+
+    throw new Apierror(
+      429,
+      `Too many failed attempts. Try again in ${remainingMinutes} minute(s).`
+    );
+  }
+
+  // Verify OTP
+  const isValid = await verify({
+    token: String(token),
+    secret: admin.twoFAsecret,
+  });
+
+  if (!isValid) {
+    admin.twoFAFailedAttempts =
+      (admin.twoFAFailedAttempts || 0) + 1;
+
+    // Lock after 5 failed attempts
+    if (admin.twoFAFailedAttempts >= 5) {
+      admin.twoFABlockedUntil = new Date(
+        Date.now() + 10 * 60 * 1000
+      );
+
+      await admin.save();
+
+      throw new Apierror(
+        429,
+        "Too many failed attempts. Try again after 10 minutes."
+      );
     }
 
-    if(!token){
-        throw new Apierror(400,"Please fill all the required fields")
-    }
+    await admin.save();
 
-    const veri = await verify({token,secret:admin.twoFAsecret})
-    if(!veri){
-        throw new Apierror(401,"User not authorized")
-    }
+    const attemptsLeft =
+      5 - admin.twoFAFailedAttempts;
 
-     const token1 = await admin.AccessToken()
-     if(!token1){
-         throw new Apierror(400,"Token not generated")
-     }
- 
-      const options = {
-     httpOnly:true,
-     secure:true,
-     sameSite:"None",
-     maxAge:9*60*60*1000
-   }
- 
+    throw new Apierror(
+      401,
+      `Invalid authentication code. ${attemptsLeft} attempt(s) remaining.`
+    );
+  }
 
+  // Successful OTP → reset brute-force counters
+  admin.twoFAFailedAttempts = 0;
+  admin.twoFABlockedUntil = null;
 
-    res.status(200)
-    .cookie("token",token1,options)
-    .json(new Apiresponse(200,"User verified Successfully",admin))
-    //checking
-})
+  await admin.save();
+
+  // Generate final authenticated JWT
+  const token1 = await admin.AccessToken();
+
+  if (!token1) {
+    throw new Apierror(
+      500,
+      "Token could not be generated"
+    );
+  }
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    maxAge: 9 * 60 * 60 * 1000,
+  };
+
+  return res
+    .status(200)
+    .cookie("token", token1, options)
+    .json(
+      new Apiresponse(
+        200,
+        "Two-factor authentication successful",
+        admin
+      )
+    )
+});
 
 export const addpermission = asynchandler(async(req,res)=>{
     const {id,permissions} = req.body
