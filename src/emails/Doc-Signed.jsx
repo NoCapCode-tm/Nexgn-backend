@@ -35,8 +35,8 @@ import {
 
 const ASSET_URL = "https://nexgn.cloud/template";
 const HEART_ICON = `${ASSET_URL}/stamp.png`;
-const LINKEDIN_ICON = `${ASSET_URL}/linkedin.png`;
-const INSTAGRAM_ICON = `${ASSET_URL}/instagram.png`;
+const LINKEDIN_ICON = `${ASSET_URL}/LinkedIn.png`;
+const INSTAGRAM_ICON = `${ASSET_URL}/Instagram.png`;
 const PDF_ICON = `${ASSET_URL}/pdf.png`;
 const DOWNLOAD_ICON = `${ASSET_URL}/download.png`;
 const CERT_SEAL_ICON = `${ASSET_URL}/Seal.png`;

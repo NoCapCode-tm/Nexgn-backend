@@ -27,9 +27,8 @@ import {
 // ---------------------------------------------------------------------------
 const ASSET_URL = "https://nexgn.cloud/template";
 const HEART_ICON = `${ASSET_URL}/stamp.png`;
-const LINKEDIN_ICON = `${ASSET_URL}/linkedin.png`;
-const SECOND_SOCIAL_ICON = `${ASSET_URL}/instagram.png`;
-const SECOND_SOCIAL_URL = "https://instagram.com/nexgn";
+const LINKEDIN_ICON = `${ASSET_URL}/LinkedIn.png`;
+const INSTAGRAM_ICON = `${ASSET_URL}/Instagram.png`;
 const RESET_CTA_IMG = `${ASSET_URL}/e.png`; // <-- confirm/replace filename
 
 const COLORS = {
@@ -253,7 +252,7 @@ export default function ResetPasswordEmail({
                 </Link>
               </Column>
               <Column align="center">
-                <Link href={SECOND_SOCIAL_URL}>
+                <Link href="https://instagram.com/nexgn">
                   <Img src={SECOND_SOCIAL_ICON} width="24" height="24" alt="Social" />
                 </Link>
               </Column>
