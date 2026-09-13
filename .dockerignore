@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.env.*
+coverage
+.vscode
+.idea
+*.log
+Dockerfile
+docker-compose.yml
+docker-compose.prod.yml
+nginx
+certbot
