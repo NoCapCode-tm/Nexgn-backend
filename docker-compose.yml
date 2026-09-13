@@ -1,6 +1,6 @@
 services:
    backend:
-    image: nocapcode/atlas_backend:latest
+    image: nocapcode/ngx_backend:latest
     env_file:
       - .env
     ports:
