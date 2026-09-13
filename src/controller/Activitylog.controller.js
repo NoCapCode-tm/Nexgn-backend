@@ -28,7 +28,6 @@ export const deleteactivity = asynchandler(async(req,res)=>{
    if(!id){
     throw new Apierror(400,"Please fill all the required fields")
    }
-
    await activitylog.findByIdAndDelete(id)
      res.status(200)
     .json(new Apiresponse(200,"Activity deleted",[]))
