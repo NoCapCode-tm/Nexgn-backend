@@ -14,6 +14,7 @@ import {
 } from "./controller/razorpayWebhook.controller.js";
 import subscriptionrouter from "./routes/subscription.routes.js";
 import { globalRateLimiter } from "./middleware/rateLimit.middleware.js";
+import { contactrouter } from "./routes/contact.routes.js";
 
 
 const app = express();
@@ -56,6 +57,7 @@ app.use(cookieParser());
 app.use("/api/v1/google", googleRoutes);
 app.use("/api/v1/subscription", subscriptionrouter);
 app.use("/api/v1/admin", adminrouter);
+app.use("/api/v1/contact",contactrouter);
 app.use("/api/v1/template", templaterouter);
 app.use("/api/v1/document", documentrouter);
 app.use("/api/v1/sign", signrouter);

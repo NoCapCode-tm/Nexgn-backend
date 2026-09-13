@@ -1,5 +1,5 @@
 import {Router} from "express"
-import { addcontact, addpermission, adminsignup, changestatus, declineInvitation, deleteAdmin, getAdmin, getsubadmin, getuser, inviteadmin, loginAdmin, logout, notified0, resetpass, resetpassword, setpass, twofaenable, updateAdmin, verifyotp, verifyotplogin } from "../controller/admin.controller.js";
+import { addpermission, adminsignup, changestatus, declineInvitation, deleteAdmin, getAdmin, getsubadmin, getuser, inviteadmin, loginAdmin, logout, notified0, resetpass, resetpassword, setpass, twofaenable, updateAdmin, verifyotp, verifyotplogin } from "../controller/admin.controller.js";
 import { verifyjwt } from "../middleware/auth.middleware.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { checkpermission } from "../middleware/permission.middleware.js";
@@ -20,7 +20,6 @@ adminrouter.post("/logout",verifyjwt,logout);
 adminrouter.post("/forgot-password",authRateLimiter,resetpassword);//secured
 adminrouter.post("/delete",verifyjwt,checkpermission("Contact Books-Delete"),deleteAdmin);
 adminrouter.post("/invite",verifyjwt,inviteadmin);
-adminrouter.post("/addcontact",verifyjwt,checkpermission("Contact Books-Add"),addcontact);
 adminrouter.post("/setpassword",setpass);
 
 //put apsi

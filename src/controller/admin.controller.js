@@ -304,58 +304,7 @@ export const updateAdmin = asynchandler(async (req, res) => {
   );
 });
 
-export const addcontact = asynchandler(async(req,res)=>{
-  const {name,email,contact,gender} = req.body
-  const admin = req.user
 
-  if(!admin){
-    throw new Apierror(401,"User not Authorized")
-    const activity = await activitylog.create({
-             userId:admin._id,
-             action:"Add contact Failed",
-             status:"Failure"
-         })
-  }
-
-  if(!name || !email){
-    throw new Apiresponse(400,"Please fill all the required fields")
-    const activity = await activitylog.create({
-             userId:admin._id,
-             action:"Add contact Failed",
-             status:"Failure"
-         })
-  }
-   const existinguser = await Contacts.findOne({
-        $or:[{email}]
-    })
-    if(existinguser){
-       throw new Apierror(409,"User already exists")
-       const activity = await activitylog.create({
-             userId:admin._id,
-             action:"Add contact Failed",
-             status:"Failure"
-         })
-    }
-  const contact1 = await Contacts.create({
-    name:name,
-    email:email,
-    phone_no:contact,
-    gender:gender,
-    teamid:admin.teamid
-  })
-
-  const activity = await activitylog.create({
-            userId:admin._id,
-            refId:contact1._id,
-            refModel: "user",
-            action:"Member Added Successfully",
-            status:"Success"
-        })
-
-  res.status(200)
-  .json(200,"User Added to Contactbook",contact1)
-
-})
 
 export const getuser = asynchandler(async(req,res)=>{
     const admin = req.user
