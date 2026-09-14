@@ -1,8 +1,0 @@
-services:
-   backend:
-    image: nocapcode/ngx_backend:latest
-    env_file:
-      - .env
-    ports:
-      - "6000:6000"
-    restart: unless-stopped
