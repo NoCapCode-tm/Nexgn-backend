@@ -978,9 +978,9 @@ export const signrequests = asynchandler(async (req, res) => {
 export const getsignature = asynchandler(async(req,res)=>{
     const sign = await signature.find().populate("certificateId")
 
-    if(sign.length===0){
-        throw new Apierror(404,"No Signature found in database")
-    }
+    // if(sign.length===0){
+    //     throw new Apierror(404,"No Signature found in database")
+    // }
 
     res.status(200)
     .json(new Apiresponse(200,"Signature fetched Successfully",sign))
