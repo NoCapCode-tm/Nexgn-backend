@@ -22,6 +22,8 @@ const verifyjwt = asynchandler(async (req, _, next) => {
 
     const verifieduser = await user.findById(decoded._id);
 
+    console.log("verifieduser", verifieduser);
+
     if (!verifieduser) {
       throw new Apierror(404, "User not found");
     }
