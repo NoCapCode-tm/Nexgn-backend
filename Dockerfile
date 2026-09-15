@@ -4,6 +4,8 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 
+RUN npx puppeteer browsers install chrome
+
 RUN npm install
 
 COPY . .
