@@ -2,7 +2,7 @@ import {Router} from "express"
 import { adminsignup, deleteAdmin, getAdmin, loginAdmin, logout } from "../controller/admin.controller.js";
 import { verifyjwt } from "../middleware/auth.middleware.js";
 import { createtemplate, deletetemplate, getsingletemplate, gettemplate } from "../controller/Template.controller.js";
-import { disapprove, getrequest, getsignature, signrequests, statuschange, submitdoc } from "../controller/signed.controller.js";
+import { disapprove, getrequest, getsignature, requestcancel, signrequests, statuschange, submitdoc } from "../controller/signed.controller.js";
 
 export const signrouter = Router();
 
