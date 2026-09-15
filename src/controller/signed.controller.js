@@ -17,6 +17,7 @@ import { generateSignedDocumentPDF } from "../utils/generateSignedDocumentPDF.js
 import crypto from "crypto";
 import { downloadFileFromDrive } from "../utils/downloadFileFromDrive.js";
 import { team } from "../models/team.model.js";
+import { request } from "http";
 
 
 
@@ -1066,6 +1067,26 @@ export const requestcancel = asynchandler(async (req, res) => {
             200,
             null,
             "Request cancelled successfully"
+        )
+    );
+});
+export const requestdelete = asynchandler(async (req, res) => {
+    const { id } = req.params;
+
+    if (!id ) {
+        throw new Apierror(
+            400,
+            "Request ID  are required"
+        );
+    }
+
+     await signrequest.findByIdAndDelete(id)
+
+    return res.status(200).json(
+        new Apiresponse(
+            200,
+            "Request deleted successfully",
+            null,
         )
     );
 });
