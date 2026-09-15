@@ -30,4 +30,4 @@ const ContactSchema = mongoose.Schema({
         },
 },{timestamps:true})
 
-export const Contacts = new mongoose.model("Contact",ContactSchema)
+export const Contacts = new mongoose.model("Contacts",ContactSchema)
