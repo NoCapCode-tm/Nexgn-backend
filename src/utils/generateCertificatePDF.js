@@ -10,11 +10,9 @@ export const generateCertificatePDF = async (html) => {
             );
         }
 
-        console.log(
-            "Starting Puppeteer..."
-        );
+        console.log("Starting Puppeteer...");
 
-        browser = await puppeteer.launch({
+        const launchOptions = {
             headless: true,
             args: [
                 "--no-sandbox",
@@ -22,18 +20,21 @@ export const generateCertificatePDF = async (html) => {
                 "--disable-dev-shm-usage",
                 "--disable-gpu"
             ]
-        });
+        };
 
-        console.log(
-            "Puppeteer browser started"
-        );
+        // If running in Docker, this will use the Alpine Chromium.
+        // If running in Render, this will be undefined, and Puppeteer will use its downloaded cache.
+        if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+            launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+        }
 
-        const page =
-            await browser.newPage();
+        browser = await puppeteer.launch(launchOptions);
 
-        console.log(
-            "Puppeteer page created"
-        );
+        console.log("Puppeteer browser started");
+
+        const page = await browser.newPage();
+
+        console.log("Puppeteer page created");
 
         await page.setViewport({
             width: 1200,
@@ -49,9 +50,7 @@ export const generateCertificatePDF = async (html) => {
             }
         );
 
-        console.log(
-            "Certificate HTML loaded"
-        );
+        console.log("Certificate HTML loaded");
 
         await page.evaluate(async () => {
             if (document.fonts) {
@@ -60,10 +59,7 @@ export const generateCertificatePDF = async (html) => {
         });
 
         await page.evaluate(async () => {
-            const images =
-                Array.from(
-                    document.images
-                );
+            const images = Array.from(document.images);
 
             await Promise.all(
                 images.map((img) => {
@@ -71,89 +67,52 @@ export const generateCertificatePDF = async (html) => {
                         return Promise.resolve();
                     }
 
-                    return new Promise(
-                        (resolve) => {
-                            img.addEventListener(
-                                "load",
-                                resolve,
-                                {
-                                    once: true
-                                }
-                            );
-
-                            img.addEventListener(
-                                "error",
-                                resolve,
-                                {
-                                    once: true
-                                }
-                            );
-                        }
-                    );
+                    return new Promise((resolve) => {
+                        img.addEventListener("load", resolve, { once: true });
+                        img.addEventListener("error", resolve, { once: true });
+                    });
                 })
             );
         });
 
-        console.log(
-            "Certificate assets loaded"
-        );
+        console.log("Certificate assets loaded");
 
-        const pdf =
-            await page.pdf({
-                format: "A4",
-                printBackground: true,
-                preferCSSPageSize: true,
-                landscape: false,
-                margin: {
-                    top: "0",
-                    right: "0",
-                    bottom: "0",
-                    left: "0"
-                }
-            });
+        const pdf = await page.pdf({
+            format: "A4",
+            printBackground: true,
+            preferCSSPageSize: true,
+            landscape: false,
+            margin: {
+                top: "0",
+                right: "0",
+                bottom: "0",
+                left: "0"
+            }
+        });
 
         if (!pdf) {
-            throw new Error(
-                "Puppeteer returned empty PDF"
-            );
+            throw new Error("Puppeteer returned empty PDF");
         }
 
-        const pdfBuffer =
-            Buffer.from(pdf);
+        const pdfBuffer = Buffer.from(pdf);
 
         if (!pdfBuffer.length) {
-            throw new Error(
-                "Generated PDF is empty"
-            );
+            throw new Error("Generated PDF is empty");
         }
 
-        console.log(
-            `Certificate PDF generated: ${pdfBuffer.length} bytes`
-        );
+        console.log(`Certificate PDF generated: ${pdfBuffer.length} bytes`);
 
         return pdfBuffer;
 
     } catch (error) {
-
-        console.error(
-            "Puppeteer PDF Generation Error:",
-            error
-        );
-
-        throw new Error(
-            `Failed to generate PDF: ${error.message}`
-        );
-
+        console.error("Puppeteer PDF Generation Error:", error);
+        throw new Error(`Failed to generate PDF: ${error.message}`);
     } finally {
-
         if (browser) {
             try {
                 await browser.close();
             } catch (error) {
-                console.error(
-                    "Failed to close Puppeteer:",
-                    error
-                );
+                console.error("Failed to close Puppeteer:", error);
             }
         }
     }
