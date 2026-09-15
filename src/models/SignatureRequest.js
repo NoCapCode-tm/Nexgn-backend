@@ -9,7 +9,7 @@ const SignatureRequestSchema = new mongoose.Schema({
 
     senderId:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"Contacts"
+        ref:"user"
     },
     senderip:{
         type:String,
@@ -27,7 +27,7 @@ const SignatureRequestSchema = new mongoose.Schema({
 
         userId:{
             type:mongoose.Schema.Types.ObjectId,
-            ref:"user"
+            ref:"Contacts"
         },
         signedAt:{
             type:Date,
