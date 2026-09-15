@@ -851,7 +851,7 @@ export const getinternaldocumentwidgets = asynchandler(async (req, res) => {
 });
 
 export const disapprove = asynchandler(async (req, res) => {
-    const { id, token } = req.params;
+    const { id } = req.params;
 
     if (!id || !token) {
         throw new Apierror(
@@ -862,11 +862,11 @@ export const disapprove = asynchandler(async (req, res) => {
 
     const hashedToken = crypto
         .createHash("sha256")
-        .update(token)
+        .update(id)
         .digest("hex");
 
     const request = await signrequest.findOne({
-        _id: id,
+
         signerToken: hashedToken
     });
 
@@ -985,3 +985,87 @@ export const getsignature = asynchandler(async(req,res)=>{
     res.status(200)
     .json(new Apiresponse(200,"Signature fetched Successfully",sign))
 })
+
+export const requestcancel = asynchandler(async (req, res) => {
+    const { id } = req.params;
+
+    if (!id ) {
+        throw new Apierror(
+            400,
+            "Request ID  are required"
+        );
+    }
+
+    const request = await signrequest.findOne({
+      _id:id
+    });
+
+    if (!request) {
+        throw new Apierror(
+            404,
+            "Invalid signing request"
+        );
+    }
+
+    if (
+        request.expiresat &&
+        Date.now() >= request.expiresat.getTime()
+    ) {
+        request.overallStatus = "Expired";
+        await request.save();
+
+        throw new Apierror(
+            410,
+            "Signature Request Expired"
+        );
+    }
+
+    if (
+        request.overallStatus === "completed" ||
+        request.overallStatus === "cancelled"
+    ) {
+        throw new Apierror(
+            400,
+            "Request cannot be cancelled"
+        );
+    }
+
+    request.overallStatus = "cancelled";
+    request.signerToken = null;
+
+    await request.save();
+
+    const document = await doc.findById(
+        request.documentId
+    );
+
+    if (!document) {
+        throw new Apierror(
+            404,
+            "No Document Found"
+        );
+    }
+
+    const requests = await signrequest.find({
+        documentId: request.documentId
+    });
+
+    const total = requests.length;
+
+    const rejected = requests.filter(
+        rs => rs.overallStatus === "cancelled"
+    ).length;
+
+    if (rejected === total) {
+        document.status = "cancelled";
+        await document.save();
+    }
+
+    return res.status(200).json(
+        new Apiresponse(
+            200,
+            null,
+            "Request cancelled successfully"
+        )
+    );
+});

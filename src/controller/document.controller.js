@@ -375,9 +375,22 @@ export const cancelrequest = asynchandler(async(req,res)=>{
 
    const task =  requests.map(async(request)=>{
     request.overallStatus="cancelled"
+    request.signerToken = null
     await request.save()
    })
    await Promise.all(task);
+
+   
+    const total = requests.length;
+
+    const rejected = requests.filter(
+        rs => rs.overallStatus === "cancelled"
+    ).length;
+
+    if (rejected === total) {
+        document.status = "cancelled";
+        await document.save();
+    }
 
    res.status(200)
    .json(new Apiresponse(200,"Requests Cancelled Successfully"))
