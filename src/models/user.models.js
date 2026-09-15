@@ -77,6 +77,7 @@ const UserSchema = mongoose.Schema({
     },
     twoFAsecret:{
         type:String,
+        default:null
     },
     twoFAFailedAttempts: {
   type: Number,

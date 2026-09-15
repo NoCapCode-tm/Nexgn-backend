@@ -878,3 +878,17 @@ export const addpermission = asynchandler(async(req,res)=>{
     .json(new Apiresponse(200,"Permissions Added successfully",subadmin))
 
 })
+
+export const disabletwofa = asynchandler(async(req,res)=>{
+    const admin = await user.findById(req.user._id)
+
+    if(!admin){
+        throw new Apierror(401,"User not Authorized")
+    }
+     admin.twoFAsecret = null
+     admin.twoFAenabled = false
+     await admin.save()
+
+     res.status(200)
+     .json(new Apiresponse(200,"Two Factor Authentication Disabled",[]))
+})
