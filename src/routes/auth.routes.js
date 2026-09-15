@@ -12,13 +12,13 @@ adminrouter.post("/signup", adminsignup);//secured
 adminrouter.post("/addpermissions", verifyjwt,addpermission);
 adminrouter.post("/twofaverify", verifyjwt,verifyotp);
 adminrouter.post("/disabletwofa", verifyjwt,disabletwofa);
-adminrouter.post("/twofaverifylogin",authRateLimiter,verifyotplogin);
+adminrouter.post("/twofaverifylogin",verifyotplogin);
 adminrouter.post("/verify", changestatus);//secured
 adminrouter.post("/notified", notified0);
 adminrouter.post("/resetpassword", resetpass);//secured
-adminrouter.post("/login", authRateLimiter,loginAdmin);
+adminrouter.post("/login", loginAdmin);
 adminrouter.post("/logout",verifyjwt,logout);
-adminrouter.post("/forgot-password",authRateLimiter,resetpassword);//secured
+adminrouter.post("/forgot-password",resetpassword);//secured
 adminrouter.post("/delete",verifyjwt,checkpermission("Contact Books-Delete"),deleteAdmin);
 adminrouter.post("/invite",verifyjwt,inviteadmin);
 adminrouter.post("/setpassword",setpass);
