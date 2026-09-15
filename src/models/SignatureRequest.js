@@ -9,7 +9,7 @@ const SignatureRequestSchema = new mongoose.Schema({
 
     senderId:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"user"
+        ref:"Contacts"
     },
     senderip:{
         type:String,
