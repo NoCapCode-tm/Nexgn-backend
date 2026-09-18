@@ -19,8 +19,6 @@ const getBrowser = async () => {
             "--disable-dev-shm-usage",
             "--disable-gpu",
             "--no-first-run",
-            "--no-zygote",
-            "--single-process",
             "--disable-extensions"
         ]
     };
