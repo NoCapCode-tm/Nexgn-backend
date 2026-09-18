@@ -594,10 +594,17 @@ export const submitdoc = asynchandler(async (req, res) => {
             "partially_signed";
     }
 
-    request.signerToken = null;
-    await request.save()
+    // request.signerToken = null;
+    // await request.save()
 
     await document.save();
+
+    try {
+        request.signerToken = null;
+        await request.save();
+    } catch (err) {
+        console.log("Token cleanup note:", err.message);
+    }
 
     return res
         .status(200)
