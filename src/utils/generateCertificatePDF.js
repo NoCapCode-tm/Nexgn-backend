@@ -9,7 +9,6 @@ const getBrowser = async () => {
         try {
             const browser = await browserPromise;
             
-            // Safely check connection status depending on Puppeteer version
             const isConnected = typeof browser.isConnected === 'function' 
                 ? browser.isConnected() 
                 : browser.process() != null;
@@ -29,12 +28,11 @@ const getBrowser = async () => {
         args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
-            "--disable-dev-shm-usage",
+            "--disable-dev-shm-usage", // Critical for Docker to prevent /dev/shm memory exhaustion
             "--disable-gpu",
             "--no-first-run",
-            "--no-zygote",
-            "--single-process",
             "--disable-extensions"
+            // REMOVED: "--no-zygote" and "--single-process" to prevent Alpine boot crashes
         ]
     };
 
@@ -42,15 +40,14 @@ const getBrowser = async () => {
         launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
     }
 
-    // Assign the promise immediately so any concurrent requests queue up behind it
     browserPromise = puppeteer.launch(launchOptions).then(browser => {
         browser.once("disconnected", () => {
             console.warn("Shared Puppeteer browser disconnected.");
-            browserPromise = null; // Reset on disconnect
+            browserPromise = null; 
         });
         return browser;
     }).catch(error => {
-        browserPromise = null; // Reset on failure so the next request tries again
+        browserPromise = null; 
         throw error;
     });
 
