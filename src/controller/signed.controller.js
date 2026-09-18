@@ -13,7 +13,7 @@ import { user } from "../models/user.models.js";
 import { generateCertificatePDF } from "../utils/generateCertificatePDF.js";
 import { uploadCertificateToDrive } from "../utils/uploadfiletodrive.utils.js";
 import { certificateTemplate } from "../emails/certificateTemplate.js";
-import { generateSignedDocumentPDF } from "../utils/generateSignedDocumentPDF.js.js";
+import { generateSignedDocumentPDF } from "../utils/generateSignedDocumentPDF.js";
 import crypto from "crypto";
 import { downloadFileFromDrive } from "../utils/downloadFileFromDrive.js";
 import { team } from "../models/team.model.js";
