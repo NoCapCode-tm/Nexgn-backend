@@ -188,7 +188,7 @@ export const createdocument = asynchandler(async (req, res) => {
         await resend.emails.send({
             from: `Nexgn <${process.env.SMTP_USER}>`,
             to: signee.email,
-            subject: "Your Signed Document",
+            subject: `Signature Requested: ${title}`,
             html
         });
     });

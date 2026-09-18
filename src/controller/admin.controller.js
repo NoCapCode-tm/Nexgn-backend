@@ -97,7 +97,7 @@ export const adminsignup = asynchandler(async (req, res) => {
     await resend.emails.send({
         from: `Nexgn <${process.env.SMTP_USER}>`,
         to: admin.email,
-        subject: "Verify your Nexgn email",
+        subject: "Action Required: Verify your Nexgn account",
         html
     });
 
@@ -378,7 +378,7 @@ const html = await renderSubAdminInviteEmail({
 const response = await resend.emails.send({
     from: `Nexgn <${process.env.SMTP_USER}>`,
     to: email,
-    subject: "Your Nexgn workspace is now live.",
+    subject: `You've been invited to join ${team1.company_name} on Nexgn`,
     html
 });
 
@@ -492,7 +492,7 @@ const html = await renderWaitlistEmail({
 await resend.emails.send({
     from: `Nexgn <${process.env.SMTP_USER}>`,
     to: email,
-    subject: "Your Nexgn workspace is now live.",
+    subject: "You're officially on the Nexgn waitlist",
     html
 });
 
@@ -552,7 +552,7 @@ export const resetpassword = asynchandler(async (req, res) => {
     await resend.emails.send({
         from: `Nexgn <${process.env.SMTP_USER}>`,
         to: normalizedEmail,
-        subject: "Reset your Nexgn password",
+        subject: "Action Required: Reset your Nexgn password",
         html
     });
 
@@ -738,7 +738,7 @@ if(!admin.twoFAenabled){
 await resend.emails.send({
     from: `Nexgn <${process.env.SMTP_USER}>`,
     to: admin.email,
-    subject: "Two Factor Auth Enabled",
+    subject: "Security Update: Two-Factor Authentication enabled",
     html
 });
 

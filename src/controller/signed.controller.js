@@ -101,7 +101,6 @@ const formatDate = (date) => {
   });
 };
 
-
 export const submitdoc = asynchandler(async (req, res) => {
     const {
         sign,
@@ -564,15 +563,9 @@ export const submitdoc = asynchandler(async (req, res) => {
         });
 
     await resend.emails.send({
-        from:
-            `Nexgn <${process.env.SMTP_USER}>`,
-
-        to:
-            receiver.email,
-
-        subject:
-            "Your document has been signed and certified",
-
+        from:`Nexgn <${process.env.SMTP_USER}>`,
+        to: receiver.email,
+        subject: `Completed: ${document.title} has been signed and certified`,
         html:
             emailHtml
     });
@@ -725,6 +718,7 @@ export const getrequest = asynchandler(async (req, res) => {
         )
     );
 });
+
 export const getdocumentwidgets = asynchandler(async (req, res) => {
     const { id } = req.params;
 
@@ -799,6 +793,7 @@ export const getdocumentwidgets = asynchandler(async (req, res) => {
         )
     );
 });
+
 export const getinternaldocumentwidgets = asynchandler(async (req, res) => {
     const { id } = req.params;
 
@@ -976,6 +971,7 @@ export const signrequests = asynchandler(async (req, res) => {
         )
     );
 });
+
 export const getsignature = asynchandler(async(req,res)=>{
     const sign = await signature.find().populate("certificateId")
 
@@ -1070,6 +1066,7 @@ export const requestcancel = asynchandler(async (req, res) => {
         )
     );
 });
+
 export const requestdelete = asynchandler(async (req, res) => {
     const { id } = req.params;
 
