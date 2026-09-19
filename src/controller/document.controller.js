@@ -21,199 +21,306 @@ import { Contacts } from "../models/contact.model.js";
 
 
 export const createdocument = asynchandler(async (req, res) => {
-    const {
-        title,
-        templateid,
-        applicants,
-        documentwidgets,
-        expiry,
-        note,
-        senderip,
-        pathname
-    } = req.body;
+    try {
+        console.log("CREATE DOCUMENT CONTROLLER HIT");
 
-    let documentwidget;
-    let applicant;
-
-    if (typeof applicants === "string") {
-        try {
-            applicant = JSON.parse(applicants);
-        } catch (error) {
-            throw new Apierror(400, "Invalid applicants format");
-        }
-    } else {
-        applicant = applicants;
-    }
-
-    if (typeof documentwidgets === "string") {
-        try {
-            documentwidget = JSON.parse(documentwidgets);
-        } catch (error) {
-            throw new Apierror(400, "Invalid document widgets format");
-        }
-    }
-
-    let driveuser;
-
-    if (req.user.role === "Admin") {
-        driveuser = req.user._id;
-    } else {
-        const team1 = await team.findById(req.user.teamid);
-
-        if (!team1) {
-            throw new Apierror(404, "Team not found");
-        }
-
-        driveuser = team1.owner;
-    }
-
-    if (!title || !applicants || !senderip || !pathname) {
-        throw new Apierror(400, "Please fill all the required fields");
-    }
-
-    let document;
-
-    if (req.file) {
-        const uploadedFile = await uploadFileToDrive(
-            driveuser,
-            req.file
-        );
-        document = await doc.create({
+        const {
             title,
-            driveFileId: uploadedFile,
-            createdBy: req.user._id,
-            teamid: req.user.teamid,
-            status: "draft",
-            assignedto: applicant,
-            note
-        });
+            templateid,
+            applicants,
+            documentwidgets,
+            expiry,
+            note,
+            senderip,
+            pathname
+        } = req.body;
 
-        await documentfield.create({
-            documentId: document._id,
-            widget: documentwidget
-        });
-    } else {
-
-        document = await doc.create({
+        console.log("REQUEST BODY:", {
             title,
-            templateId: templateid,
-            createdBy: req.user._id,
-            teamid: req.user.teamid,
-            status: "draft",
-            assignedto: applicant,
-            note
+            templateid,
+            applicants,
+            expiry,
+            note,
+            senderip,
+            pathname
         });
-    }
 
-    let expiresAt = null;
+        console.log("FILE:", req.file ? {
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size
+        } : "NO FILE");
 
-    if (pathname === "/request-signature") {
-        if (!expiry) {
+        let documentwidget;
+        let applicant;
+
+        if (typeof applicants === "string") {
+            try {
+                applicant = JSON.parse(applicants);
+            } catch (error) {
+                console.error("APPLICANTS JSON PARSE ERROR:", error);
+                throw new Apierror(400, "Invalid applicants format");
+            }
+        } else {
+            applicant = applicants;
+        }
+
+        console.log("APPLICANTS:", applicant);
+
+        if (typeof documentwidgets === "string") {
+            try {
+                documentwidget = JSON.parse(documentwidgets);
+            } catch (error) {
+                console.error("DOCUMENT WIDGETS JSON PARSE ERROR:", error);
+                throw new Apierror(400, "Invalid document widgets format");
+            }
+        }
+
+        console.log("DOCUMENT WIDGETS:", documentwidget);
+
+        let driveuser;
+
+        if (req.user.role === "Admin") {
+            driveuser = req.user._id;
+        } else {
+            const team1 = await team.findById(req.user.teamid);
+
+            if (!team1) {
+                throw new Apierror(404, "Team not found");
+            }
+
+            driveuser = team1.owner;
+        }
+
+        console.log("DRIVE USER:", driveuser);
+
+        if (!title || !applicants || !senderip || !pathname) {
+            console.error("REQUIRED FIELD MISSING", {
+                title,
+                applicants,
+                senderip,
+                pathname
+            });
+
             throw new Apierror(
                 400,
-                "Expiry is required for request signature"
+                "Please fill all the required fields"
             );
         }
 
-        expiresAt = new Date();
+        let document;
 
-        expiresAt.setDate(
-            expiresAt.getDate() + Number(expiry)
-        );
-    }
+        if (req.file) {
+            console.log("UPLOADING FILE TO GOOGLE DRIVE");
 
-    let respons;
+            const uploadedFile = await uploadFileToDrive(
+                driveuser,
+                req.file
+            );
 
-    const tasks = applicant.map(async (signee) => {
-        let member = await Contacts.findOne({
-            email: signee.email
-        });
+            console.log("FILE UPLOADED:", uploadedFile);
 
-        if (!member) {
-            member = await Contacts.create({
-                name: signee.name,
-                email: signee.email,
+            console.log("CREATING DOCUMENT IN MONGODB");
+
+            document = await doc.create({
+                title,
+                driveFileId: uploadedFile,
+                createdBy: req.user._id,
                 teamid: req.user.teamid,
+                status: "draft",
+                assignedto: applicant,
+                note
+            });
+
+            console.log("DOCUMENT CREATED:", {
+                id: document._id,
+                title: document.title,
+                driveFileId: document.driveFileId
+            });
+
+            await documentfield.create({
+                documentId: document._id,
+                widget: documentwidget
+            });
+
+            console.log("DOCUMENT FIELDS CREATED");
+        } else {
+            document = await doc.create({
+                title,
+                templateId: templateid,
+                createdBy: req.user._id,
+                teamid: req.user.teamid,
+                status: "draft",
+                assignedto: applicant,
+                note
+            });
+
+            console.log("TEMPLATE DOCUMENT CREATED:", {
+                id: document._id,
+                title: document.title
             });
         }
 
-        const signerToken = crypto
-            .randomBytes(32)
-            .toString("hex");
+        let expiresAt = null;
 
-        const hashedSignerToken = crypto
-            .createHash("sha256")
-            .update(signerToken)
-            .digest("hex");
+        if (pathname === "/request-signature") {
+            if (!expiry) {
+                throw new Apierror(
+                    400,
+                    "Expiry is required for request signature"
+                );
+            }
 
-        const signature = await signrequest.create({
-            documentId: document._id,
-            senderId: document.createdBy,
-            senderip,
-            expiresat: expiresAt,
-            signerToken: hashedSignerToken,
-            recipient: {
-                userId: member._id
-            },
-            overallStatus: "pending"
-        });
+            expiresAt = new Date();
 
-        if (pathname === "/sign-yourself") {
-            respons = signature._id;
-        } else {
-            respons = document;
+            expiresAt.setDate(
+                expiresAt.getDate() + Number(expiry)
+            );
         }
-    const formattedDeadline = signature.expiresat
-    ? new Date(signature.expiresat).toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-    })
-    : "No expiry";
 
-     const html = await renderdocEmail({
-            senderName:req.user.name,
-            documentName:title,
-            deadlineDate:formattedDeadline,
-            viewUrl:`${process.env.FRONTEND_URI}/document/${signerToken}`,
-            note:note
-        });
-        
+        console.log("EXPIRY:", expiresAt);
+
+        let respons;
+
+        const tasks = applicant.map(async (signee) => {
+            console.log("PROCESSING SIGNEE:", signee.email);
+
+            let member = await Contacts.findOne({
+                email: signee.email
+            });
+
+            if (!member) {
+                member = await Contacts.create({
+                    name: signee.name,
+                    email: signee.email,
+                    teamid: req.user.teamid
+                });
+            }
+
+            const signerToken = crypto
+                .randomBytes(32)
+                .toString("hex");
+
+            const hashedSignerToken = crypto
+                .createHash("sha256")
+                .update(signerToken)
+                .digest("hex");
+
+            const signature = await signrequest.create({
+                documentId: document._id,
+                senderId: document.createdBy,
+                senderip,
+                expiresat: expiresAt,
+                signerToken: hashedSignerToken,
+                recipient: {
+                    userId: member._id
+                },
+                overallStatus: "pending"
+            });
+
+            console.log("SIGNATURE REQUEST CREATED:", {
+                signatureId: signature._id,
+                documentId: document._id
+            });
+
+            if (pathname === "/sign-yourself") {
+                respons = signature._id;
+            } else {
+                respons = document;
+            }
+
+            const formattedDeadline = signature.expiresat
+                ? new Date(signature.expiresat).toLocaleString(
+                    "en-IN",
+                    {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    }
+                )
+                : "No expiry";
+
+            const html = await renderdocEmail({
+                senderName: req.user.name,
+                documentName: title,
+                deadlineDate: formattedDeadline,
+                viewUrl: `${process.env.FRONTEND_URI}/document/${signerToken}`,
+                note
+            });
+
             const resend = new Resend(
                 process.env.RESEND_API_KEY
             );
-    
-        await resend.emails.send({
-            from: `Nexgn <${process.env.SMTP_USER}>`,
-            to: signee.email,
-            subject: `Signature Requested: ${title}`,
-            html
+
+            console.log("SENDING EMAIL TO:", signee.email);
+
+            await resend.emails.send({
+                from: `Nexgn <${process.env.SMTP_USER}>`,
+                to: signee.email,
+                subject: `Signature Requested: ${title}`,
+                html
+            });
+
+            console.log("EMAIL SENT TO:", signee.email);
         });
-    });
 
-    await Promise.all(tasks);
+        await Promise.all(tasks);
 
-    document.status = "sent";
+        console.log("ALL SIGNATURE REQUESTS COMPLETED");
 
-    await document.save();
+        document.status = "sent";
 
-    await activitylog.create({
-        userId: req.user._id,
-        refId: document._id,
-        refModel: "doc",
-        action: "Document Created Successfully",
-        status: "Success"
-    });
+        await document.save();
 
-    return res.status(200).json(
-        new Apiresponse(
-            200,
-            respons,
-            "Document Created Successfully"
-        )
-    );
+        console.log("DOCUMENT STATUS UPDATED:", document._id);
+
+        await activitylog.create({
+            userId: req.user._id,
+            refId: document._id,
+            refModel: "doc",
+            action: "Document Created Successfully",
+            status: "Success"
+        });
+
+        console.log("ACTIVITY LOG CREATED");
+
+        console.log("FINAL DOCUMENT ID:", document._id);
+        console.log("FINAL RESPONSE:", respons);
+
+        return res.status(200).json(
+            new Apiresponse(
+                200,
+                respons,
+                "Document Created Successfully"
+            )
+        );
+
+    } catch (error) {
+        console.error("CREATE DOCUMENT ERROR");
+        console.error("MESSAGE:", error?.message);
+        console.error("NAME:", error?.name);
+        console.error("CODE:", error?.code);
+        console.error("STACK:", error?.stack);
+
+        console.error("REQUEST:", {
+            title: req.body?.title,
+            pathname: req.body?.pathname,
+            userId: req.user?._id,
+            teamId: req.user?.teamid,
+            file: req.file?.originalname
+        });
+
+        if (error instanceof Apierror) {
+            throw error;
+        }
+
+        throw new Apierror(
+            500,
+            error?.message || "Something went wrong while creating document"
+        );
+    }
 });
 
 export const getdocument = asynchandler(async(req,res)=>{
