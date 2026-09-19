@@ -20,7 +20,7 @@ import { contactrouter } from "./routes/contact.routes.js";
 const app = express();
 
 // Trust the reverse proxy (Cloudflare / proxy)
-// app.set("trust proxy", 1);
+app.set("trust proxy", 1);
 
 const allowedOrigins = [
   "http://localhost:5173",

@@ -81,3 +81,50 @@ export const deletecontact = asynchandler(async(req,res)=>{
     res.status(200)
     .json(new Apiresponse(200,"Contact Deleted Successfully",[]))
 })
+
+export const updatecontact = asynchandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, email, contact, gender } = req.body;
+
+  if (!id) {
+    throw new Apierror(400, "Contact id is required");
+  }
+
+  if (!name || !email) {
+    throw new Apierror(400, "Please fill all the required fields");
+  }
+
+  const contactUser = await Contacts.findOne({
+    _id: id,
+    teamid: req.user.teamid
+  });
+
+  if (!contactUser) {
+    throw new Apierror(404, "Contact not found");
+  }
+
+  const existingContact = await Contacts.findOne({
+    email,
+    teamid: req.user.teamid,
+    _id: { $ne: id }
+  });
+
+  if (existingContact) {
+    throw new Apierror(409, "A contact with this email already exists");
+  }
+
+  contactUser.name = name.trim();
+  contactUser.email = email.trim();
+  contactUser.phone_no = contact || null;
+  contactUser.gender = gender || "";
+
+  await contactUser.save();
+
+  res.status(200).json(
+    new Apiresponse(
+      200,
+      "Contact updated successfully",
+      contactUser
+    )
+  );
+});

@@ -12,6 +12,7 @@ import { generateSecret,generateURI,verify} from "otplib";
 import QRCode from "qrcode";
 import { team} from "../models/team.model.js";
 import { Contacts } from "../models/contact.model.js";
+import { uploadToCloudinary } from "../utils/cloudinary.utils.js";
 
 
 
@@ -244,6 +245,7 @@ export const updateAdmin = asynchandler(async (req, res) => {
   } = req.body;
 
   const admin = await user.findById(id);
+  const team1 = await team.findById(req.user.teamid)
 
   if (!admin) {
     throw new Apierror(404, "User not found");
@@ -267,8 +269,8 @@ export const updateAdmin = asynchandler(async (req, res) => {
 }
   if (time_zone !== undefined) admin.time_zone = time_zone;
   if (language !== undefined) admin.language = language;
-  if (companyname !== undefined) admin.professional_details.company_name = companyname;
-  if (teamsize !== undefined) admin.professional_details.team_size = teamsize;
+  if (companyname !== undefined) team1.company_name = companyname;
+  if (teamsize !== undefined) team1.team_size = teamsize;
   if(address !== undefined) admin.address = address;
   if(emergency !==undefined) admin.emergency_contact = emergency;
   if(gender !==undefined) admin.gender = gender;
@@ -891,4 +893,15 @@ export const disabletwofa = asynchandler(async(req,res)=>{
 
      res.status(200)
      .json(new Apiresponse(200,"Two Factor Authentication Disabled",[]))
+})
+
+export const getteam = asynchandler(async(req,res)=>{
+    const teams = await team.find()
+
+    if(!teams){
+        throw new Apierror(404,"No Teams Found in Database")
+    }
+
+    res.status(200)
+    .json(new Apiresponse(200,"Teams Fetched Successfully",teams))
 })

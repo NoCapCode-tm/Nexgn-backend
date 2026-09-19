@@ -1,5 +1,5 @@
 import {Router} from "express"
-import { addpermission, adminsignup, changestatus, declineInvitation, deleteAdmin, disabletwofa, getAdmin, getsubadmin, getuser, inviteadmin, loginAdmin, logout, notified0, resetpass, resetpassword, setpass, twofaenable, updateAdmin, verifyotp, verifyotplogin } from "../controller/admin.controller.js";
+import { addpermission, adminsignup, changestatus, declineInvitation, deleteAdmin, disabletwofa, getAdmin, getsubadmin, getteam, getuser, inviteadmin, loginAdmin, logout, notified0, resetpass, resetpassword, setpass, twofaenable, updateAdmin, verifyotp, verifyotplogin } from "../controller/admin.controller.js";
 import { verifyjwt } from "../middleware/auth.middleware.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { checkpermission } from "../middleware/permission.middleware.js";
@@ -34,6 +34,7 @@ adminrouter.put(
 //get apis
 adminrouter.get("/getuser",verifyjwt,checkpermission("Contact Books-View"),getuser);
 adminrouter.get("/twofa", verifyjwt,twofaenable);
+adminrouter.get("/teams", verifyjwt,getteam);
 adminrouter.get("/me", verifyjwt,getAdmin);
 adminrouter.get("/getsubadmin",verifyjwt,getsubadmin);
 adminrouter.get(
