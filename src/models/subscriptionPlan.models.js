@@ -58,7 +58,7 @@ const SubscriptionPlanSchema = new mongoose.Schema(
 
 SubscriptionPlanSchema.index(
     { slug: 1, billingPeriod: 1 },
-    { unique: true }
+   
 );
 
 export const subscriptionPlan =

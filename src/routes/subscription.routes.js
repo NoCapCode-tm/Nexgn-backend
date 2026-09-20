@@ -5,7 +5,8 @@ import {
     createSubscription,
     verifySubscriptionPayment,
     getMySubscription,
-    getMyPayments
+    getMyPayments,
+    activateFreeSubscription
 } from "../controller/subscription.controller.js";
 
 import {
@@ -17,7 +18,11 @@ const subscriptionrouter = Router();
 //post apis
 subscriptionrouter.post("/create",verifyjwt,createSubscription);
 subscriptionrouter.post("/verify",verifyjwt,verifySubscriptionPayment);
-
+subscriptionrouter.post(
+    "/activate-free",
+    verifyjwt,
+    activateFreeSubscription
+);
 //get apis
 subscriptionrouter.get("/plans",verifyjwt,getSubscriptionPlans);
 subscriptionrouter.get("/mysubscription",verifyjwt,getMySubscription);

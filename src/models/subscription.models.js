@@ -12,19 +12,16 @@ const SubscriptionSchema = new mongoose.Schema(
         planId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "subscriptionPlan",
-            required: true
         },
 
         razorpaySubscriptionId: {
             type: String,
-            required: true,
             unique: true,
             index: true
         },
 
         razorpayPlanId: {
             type: String,
-            required: true
         },
 
         status: {

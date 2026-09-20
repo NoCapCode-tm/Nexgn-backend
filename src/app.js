@@ -15,6 +15,7 @@ import {
 import subscriptionrouter from "./routes/subscription.routes.js";
 import { globalRateLimiter } from "./middleware/rateLimit.middleware.js";
 import { contactrouter } from "./routes/contact.routes.js";
+import { errorHandler } from "./middleware/error.middleware.js";
 
 
 const app = express();
@@ -65,5 +66,7 @@ app.use("/api/v1/template", templaterouter);
 app.use("/api/v1/document", documentrouter);
 app.use("/api/v1/sign", signrouter);
 app.use("/api/v1/activity", activityrouter);
+
+app.use(errorHandler);
 
 export default app;

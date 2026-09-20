@@ -115,7 +115,6 @@ export const adminsignup = asynchandler(async (req, res) => {
 });
 
 export const loginAdmin = asynchandler(async(req,res)=>{
-   try {
      const{email,password}=req.body
  
      if(!email || !password){
@@ -138,7 +137,7 @@ export const loginAdmin = asynchandler(async(req,res)=>{
      const checkpassword = await loginuser.isPasswordcorrect(password)
      if(!checkpassword){
          throw new Apierror(401,"Incorrect Password")
-         
+         return
      }
  
      const token = await loginuser.AccessToken()
@@ -167,12 +166,6 @@ export const loginAdmin = asynchandler(async(req,res)=>{
             .cookie("token",token,options)
             .json(new Apiresponse(200,"Login successfull",loginuser))
          }
- 
-    
-   } catch (error) {
-      console.log("Something went wrong")
-   }
-    
 })
 
 export const getAdmin = asynchandler(async(req,res)=>{
