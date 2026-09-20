@@ -149,7 +149,7 @@ export default function VerifyEmail({
                   className="drop-cap-img"
                 />
               </Column>
-              <Column style={styles.testimonialCol, {marginTop: 44}}>
+              <Column style={{ ...styles.testimonialCol, marginTop: 44 }}>
                 <Text style={styles.testimonialText}>
                   If you have any questions, just reply to this email a real
                   person on our team will respond within a few hours.
