@@ -71,11 +71,16 @@ export const createSubscription =
             );
         }
 
-        if (
-            plan.billingPeriod ===
-            "free"
-        ) {
 
+        // --------------------------------------------------
+        // FREE PLAN
+        // --------------------------------------------------
+
+        if (
+            plan.slug === "free" ||
+            plan.billingPeriod === "free" ||
+            plan.amount === 0
+        ) {
             return res.status(200).json(
                 new Apiresponse(
                     200,
@@ -86,109 +91,185 @@ export const createSubscription =
                 )
             );
         }
-       // --------------------------------------------------
-// Check for an already active subscription
-// --------------------------------------------------
-
-// --------------------------------------------------
-// Check for an already active subscription
-// --------------------------------------------------
-
-const activeSubscription =
-    await subscription.findOne({
-        userId: admin._id,
-        status: {
-            $in: [
-                "authenticated",
-                "active",
-                "pending"
-            ]
-        }
-    });
-
-if (activeSubscription) {
-    throw new Apierror(
-        409,
-        "You already have an active subscription"
-    );
-}
 
 
-// --------------------------------------------------
-// Find any existing unpaid checkout
-// --------------------------------------------------
+        // --------------------------------------------------
+        // CHECK FOR EXISTING ACTIVE SUBSCRIPTION
+        //
+        // IMPORTANT:
+        // We DO NOT block the user here.
+        //
+        // If the user already has Starter and chooses
+        // Business, Business payment must be allowed.
+        //
+        // The old subscription will only be cancelled
+        // AFTER Business payment succeeds.
+        // --------------------------------------------------
 
-const existingCreatedSubscription =
-    await subscription.findOne({
-        userId: admin._id,
-        status: "created"
-    });
+        const currentSubscription =
+            await subscription.findOne({
+                userId: admin._id,
+                status: {
+                    $in: [
+                        "authenticated",
+                        "active"
+                    ]
+                }
+            });
 
 
-// --------------------------------------------------
-// If an unpaid checkout exists
-// --------------------------------------------------
+        // --------------------------------------------------
+        // CHECK FOR EXISTING CREATED CHECKOUT
+        // --------------------------------------------------
 
-if (existingCreatedSubscription) {
+        const existingCreatedSubscription =
+            await subscription.findOne({
+                userId: admin._id,
+                status: "created"
+            });
 
-    // Same plan
-    if (
-        existingCreatedSubscription.planId.toString() ===
-        plan._id.toString()
-    ) {
 
-        const createdAt =
-            existingCreatedSubscription.createdAt;
+        if (existingCreatedSubscription) {
 
-        const expiryTime =
-            new Date(
-                createdAt.getTime() +
-                30 * 60 * 1000
-            );
+            const samePlan =
+                existingCreatedSubscription.planId.toString() ===
+                plan._id.toString();
 
-        // Reuse same Razorpay subscription
-        if (new Date() < expiryTime) {
 
-            return res.status(200).json(
-                new Apiresponse(
-                    200,
-                    "Existing checkout subscription found",
-                    {
-                        key:
-                            process.env.RAZORPAY_KEY_ID,
+            // --------------------------------------------------
+            // SAME PLAN
+            //
+            // Reuse existing checkout for 30 minutes.
+            // --------------------------------------------------
 
-                        subscriptionId:
+            if (samePlan) {
+
+                const createdAt =
+                    existingCreatedSubscription.createdAt;
+
+                const expiryTime =
+                    new Date(
+                        createdAt.getTime() +
+                        30 * 60 * 1000
+                    );
+
+
+                if (new Date() < expiryTime) {
+
+                    return res.status(200).json(
+                        new Apiresponse(
+                            200,
+                            "Existing checkout subscription found",
+                            {
+                                key:
+                                    process.env.RAZORPAY_KEY_ID,
+
+                                subscriptionId:
+                                    existingCreatedSubscription
+                                        .razorpaySubscriptionId,
+
+                                plan,
+
+                                user: {
+                                    name:
+                                        admin.name,
+
+                                    email:
+                                        admin.email
+                                },
+
+                                localSubscription:
+                                    existingCreatedSubscription
+                            }
+                        )
+                    );
+                }
+
+
+                // --------------------------------------------------
+                // SAME PLAN BUT CHECKOUT EXPIRED
+                // --------------------------------------------------
+
+                try {
+
+                    if (
+                        existingCreatedSubscription
+                            .razorpaySubscriptionId
+                    ) {
+
+                        await razorpay.subscriptions.cancel(
                             existingCreatedSubscription
                                 .razorpaySubscriptionId,
-
-                        plan,
-
-                        user: {
-                            name: admin.name,
-                            email: admin.email
-                        },
-
-                        localSubscription:
-                            existingCreatedSubscription
+                            false
+                        );
                     }
-                )
-            );
+
+                } catch (error) {
+
+                    console.error(
+                        "Failed to cancel expired Razorpay subscription:",
+                        error?.message
+                    );
+                }
+
+
+                existingCreatedSubscription.status =
+                    "cancelled";
+
+                await existingCreatedSubscription.save();
+            }
+
+
+            // --------------------------------------------------
+            // DIFFERENT PLAN
+            //
+            // Example:
+            //
+            // Starter checkout abandoned
+            // User now selects Business
+            //
+            // Cancel the old created checkout.
+            // --------------------------------------------------
+
+            else {
+
+                try {
+
+                    if (
+                        existingCreatedSubscription
+                            .razorpaySubscriptionId
+                    ) {
+
+                        await razorpay.subscriptions.cancel(
+                            existingCreatedSubscription
+                                .razorpaySubscriptionId,
+                            false
+                        );
+                    }
+
+                } catch (error) {
+
+                    console.error(
+                        "Failed to cancel previous Razorpay checkout:",
+                        error?.message
+                    );
+                }
+
+
+                existingCreatedSubscription.status =
+                    "cancelled";
+
+                await existingCreatedSubscription.save();
+            }
         }
-    }
 
 
-    // --------------------------------------------------
-    // Different plan OR old checkout expired
-    // --------------------------------------------------
+        // --------------------------------------------------
+        // CREATE NEW RAZORPAY SUBSCRIPTION
+        // --------------------------------------------------
 
-    existingCreatedSubscription.status =
-        "cancelled";
-
-    await existingCreatedSubscription.save();
-}
         const totalCount =
-            plan.billingPeriod ===
-            "monthly"
+            plan.billingPeriod === "monthly"
                 ? 12
                 : 1;
 
@@ -215,10 +296,22 @@ if (existingCreatedSubscription) {
                         plan._id.toString(),
 
                     billingPeriod:
-                        plan.billingPeriod
+                        plan.billingPeriod,
+
+                    previousSubscriptionId:
+                        currentSubscription
+                            ? currentSubscription._id.toString()
+                            : null
                 }
             });
 
+
+        // --------------------------------------------------
+        // CREATE LOCAL PENDING SUBSCRIPTION
+        //
+        // IMPORTANT:
+        // The old active subscription is NOT cancelled here.
+        // --------------------------------------------------
 
         const localSubscription =
             await subscription.create({
@@ -284,6 +377,10 @@ if (existingCreatedSubscription) {
             });
 
 
+        // --------------------------------------------------
+        // RESPONSE
+        // --------------------------------------------------
+
         return res.status(201).json(
             new Apiresponse(
                 201,
@@ -329,6 +426,11 @@ export const verifySubscriptionPayment =
             razorpay_signature
         } = req.body;
 
+
+        // --------------------------------------------------
+        // VALIDATE RAZORPAY RESPONSE
+        // --------------------------------------------------
+
         if (
             !razorpay_payment_id ||
             !razorpay_subscription_id ||
@@ -339,6 +441,11 @@ export const verifySubscriptionPayment =
                 "Incomplete Razorpay response"
             );
         }
+
+
+        // --------------------------------------------------
+        // VERIFY SIGNATURE
+        // --------------------------------------------------
 
         const generatedSignature =
             crypto
@@ -351,6 +458,7 @@ export const verifySubscriptionPayment =
                 )
                 .digest("hex");
 
+
         if (
             generatedSignature !==
             razorpay_signature
@@ -361,12 +469,19 @@ export const verifySubscriptionPayment =
             );
         }
 
+
+        // --------------------------------------------------
+        // FIND NEW SUBSCRIPTION
+        // --------------------------------------------------
+
         const localSubscription =
             await subscription.findOne({
                 userId: admin._id,
+
                 razorpaySubscriptionId:
                     razorpay_subscription_id
             });
+
 
         if (!localSubscription) {
             throw new Apierror(
@@ -375,25 +490,122 @@ export const verifySubscriptionPayment =
             );
         }
 
+
+        // --------------------------------------------------
+        // PAYMENT SUCCESSFUL
+        // --------------------------------------------------
+
         localSubscription.lastPaymentId =
             razorpay_payment_id;
 
-        if (
-            localSubscription.status ===
-            "created"
-        ) {
-            localSubscription.status =
-                "authenticated";
-        }
+        localSubscription.status =
+            "authenticated";
 
         await localSubscription.save();
+
+
+        // --------------------------------------------------
+        // FIND OLD ACTIVE SUBSCRIPTION
+        // --------------------------------------------------
+        //
+        // This is the important part.
+        //
+        // We only look for another active subscription.
+        // The NEW subscription is excluded.
+        // --------------------------------------------------
+
+        const previousSubscription =
+            await subscription.findOne({
+                userId: admin._id,
+
+                _id: {
+                    $ne:
+                        localSubscription._id
+                },
+
+                status: {
+                    $in: [
+                        "authenticated",
+                        "active"
+                    ]
+                }
+            });
+
+
+        // --------------------------------------------------
+        // CANCEL OLD SUBSCRIPTION
+        // --------------------------------------------------
+
+        if (previousSubscription) {
+
+            // ----------------------------------------------
+            // Cancel old Razorpay subscription
+            // ----------------------------------------------
+
+            if (
+                previousSubscription
+                    .razorpaySubscriptionId
+            ) {
+
+                try {
+
+                    await razorpay.subscriptions.cancel(
+                        previousSubscription
+                            .razorpaySubscriptionId,
+                        false
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "Failed to cancel old Razorpay subscription:",
+                        error?.message
+                    );
+
+                    // IMPORTANT:
+                    // Do not silently mark Mongo as cancelled
+                    // if Razorpay cancellation failed.
+                    //
+                    // This prevents MongoDB and Razorpay from
+                    // getting out of sync.
+                    throw new Apierror(
+                        500,
+                        "New payment succeeded, but previous subscription could not be cancelled. Please contact support."
+                    );
+                }
+            }
+
+
+            // ----------------------------------------------
+            // Cancel old Mongo subscription
+            // ----------------------------------------------
+
+            previousSubscription.status =
+                "cancelled";
+
+            previousSubscription.endDate =
+                new Date();
+
+            previousSubscription.currentPeriodEnd =
+                new Date();
+
+            await previousSubscription.save();
+        }
+
+
+        // --------------------------------------------------
+        // PAYMENT COMPLETE
+        // --------------------------------------------------
 
         return res.status(200).json(
             new Apiresponse(
                 200,
-                "Payment signature verified successfully",
+                "Payment verified and subscription upgraded successfully",
                 {
-                    verified: true
+                    verified: true,
+
+                    subscription:
+                        localSubscription
                 }
             )
         );
@@ -406,12 +618,22 @@ export const getMySubscription =
 
         const activeSubscription =
             await subscription.findOne({
-                userId: admin._id
+
+                userId: admin._id,
+
+                status: {
+                    $in: [
+                        "active",
+                        "authenticated"
+                    ]
+                }
+
             })
             .populate("planId")
             .sort({
                 createdAt: -1
             });
+
 
         return res.status(200).json(
             new Apiresponse(
@@ -451,107 +673,263 @@ export const getMyPayments =
         );
     });
 
-    export const activateFreeSubscription =
-  asynchandler(async (req, res) => {
+   export const activateFreeSubscription =
+    asynchandler(async (req, res) => {
 
-    const admin = req.user;
+        const admin = req.user;
 
-    if (!admin) {
-      throw new Apierror(
-        401,
-        "User not authorized"
-      );
-    }
+        if (!admin) {
+            throw new Apierror(
+                401,
+                "User not authorized"
+            );
+        }
 
-    const { planId } = req.body;
+        const { planId } = req.body;
 
-    if (!planId) {
-      throw new Apierror(
-        400,
-        "Plan is required"
-      );
-    }
+        if (!planId) {
+            throw new Apierror(
+                400,
+                "Plan is required"
+            );
+        }
 
-    const plan = await subscriptionPlan.findOne({
-      _id: planId,
-      slug: "free",
-      billingPeriod: "free",
-      active: true
+
+        // --------------------------------------------------
+        // FIND FREE PLAN
+        // --------------------------------------------------
+
+        const plan =
+            await subscriptionPlan.findOne({
+
+                _id: planId,
+
+                slug: "free",
+
+                billingPeriod: "free",
+
+                active: true
+            });
+
+
+        if (!plan) {
+            throw new Apierror(
+                404,
+                "Free plan not found"
+            );
+        }
+
+
+        // --------------------------------------------------
+        // CHECK EXISTING ACTIVE SUBSCRIPTION
+        // --------------------------------------------------
+
+        const activeSubscription =
+            await subscription.findOne({
+
+                userId: admin._id,
+
+                status: {
+                    $in: [
+                        "authenticated",
+                        "active"
+                    ]
+                }
+            });
+
+
+        // --------------------------------------------------
+        // IF ALREADY ON FREE
+        // --------------------------------------------------
+
+        if (
+            activeSubscription &&
+            activeSubscription.planId.toString() ===
+                plan._id.toString()
+        ) {
+
+            return res.status(200).json(
+                new Apiresponse(
+                    200,
+                    "You are already on the Free plan",
+                    {
+                        subscription:
+                            activeSubscription
+                    }
+                )
+            );
+        }
+
+
+        // --------------------------------------------------
+        // CANCEL ANY ABANDONED RAZORPAY CHECKOUT
+        // --------------------------------------------------
+
+        const createdSubscription =
+            await subscription.findOne({
+
+                userId: admin._id,
+
+                status: "created"
+            });
+
+
+        if (createdSubscription) {
+
+            if (
+                createdSubscription
+                    .razorpaySubscriptionId
+            ) {
+
+                try {
+
+                    await razorpay.subscriptions.cancel(
+                        createdSubscription
+                            .razorpaySubscriptionId,
+                        false
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "Failed to cancel abandoned Razorpay subscription:",
+                        error?.message
+                    );
+                }
+            }
+
+
+            createdSubscription.status =
+                "cancelled";
+
+            await createdSubscription.save();
+        }
+
+
+        // --------------------------------------------------
+        // CREATE FREE SUBSCRIPTION
+        // --------------------------------------------------
+
+        const now = new Date();
+
+        const endDate =
+            new Date(now);
+
+        endDate.setMonth(
+            endDate.getMonth() + 1
+        );
+
+
+        const localSubscription =
+            await subscription.create({
+
+                userId:
+                    admin._id,
+
+                planId:
+                    plan._id,
+
+                razorpaySubscriptionId:
+                    null,
+
+                razorpayPlanId:
+                    null,
+
+                status:
+                    "active",
+
+                startDate:
+                    now,
+
+                endDate:
+                    endDate,
+
+                currentPeriodStart:
+                    now,
+
+                currentPeriodEnd:
+                    endDate,
+
+                chargeAt:
+                    null,
+
+                totalCount:
+                    19,
+
+                paidCount:
+                    0,
+
+                remainingCount:
+                    19,
+
+                lastPaymentId:
+                    null,
+
+                lastInvoiceId:
+                    null
+            });
+
+
+        // --------------------------------------------------
+        // CANCEL OLD PAID SUBSCRIPTION
+        // --------------------------------------------------
+
+        if (
+            activeSubscription &&
+            activeSubscription._id.toString() !==
+                localSubscription._id.toString()
+        ) {
+
+            if (
+                activeSubscription
+                    .razorpaySubscriptionId
+            ) {
+
+                try {
+
+                    await razorpay.subscriptions.cancel(
+                        activeSubscription
+                            .razorpaySubscriptionId,
+                        false
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "Failed to cancel old Razorpay subscription:",
+                        error?.message
+                    );
+
+                    // Since Free has already been created,
+                    // we should NOT pretend everything is fine.
+                    //
+                    // Log this for manual reconciliation.
+                }
+            }
+
+
+            activeSubscription.status =
+                "cancelled";
+
+            activeSubscription.endDate =
+                new Date();
+
+            activeSubscription.currentPeriodEnd =
+                new Date();
+
+            await activeSubscription.save();
+        }
+
+
+        // --------------------------------------------------
+        // RESPONSE
+        // --------------------------------------------------
+
+        return res.status(201).json(
+            new Apiresponse(
+                201,
+                localSubscription,
+                "Free plan activated successfully"
+            )
+        );
     });
-
-    if (!plan) {
-      throw new Apierror(
-        404,
-        "Free plan not found"
-      );
-    }
-
-    // Check if user already has an active subscription
-    const existing = await subscription.findOne({
-      userId: admin._id,
-      status: {
-        $in: [
-          "created",
-          "authenticated",
-          "active",
-          "pending"
-        ]
-      }
-    });
-
-    if (existing) {
-      throw new Apierror(
-        409,
-        "You already have an active subscription"
-      );
-    }
-
-    const now = new Date();
-
-    // Free plan duration = 1 month
-    const endDate = new Date(now);
-    endDate.setMonth(
-      endDate.getMonth() + 1
-    );
-
-    const localSubscription =
-      await subscription.create({
-        userId: admin._id,
-
-        planId: plan._id,
-
-        razorpaySubscriptionId: null,
-
-        razorpayPlanId: null,
-
-        status: "active",
-
-        startDate: now,
-
-        endDate,
-
-        currentPeriodStart: now,
-
-        currentPeriodEnd: endDate,
-
-        chargeAt: null,
-
-        totalCount: 0,
-
-        paidCount: 0,
-
-        remainingCount: 0,
-
-        lastPaymentId: null,
-
-        lastInvoiceId: null
-      });
-
-    return res.status(201).json(
-      new Apiresponse(
-        201,
-        localSubscription,
-        "Free plan activated successfully"
-      )
-    );
-  });
