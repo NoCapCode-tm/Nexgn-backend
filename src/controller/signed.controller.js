@@ -594,7 +594,8 @@ export const submitdoc = asynchandler(async (req, res) => {
             "partially_signed";
     }
 
-    request.signerToken = null;
+    // request.signerToken = null;
+    
     await request.save()
 
     await document.save();
