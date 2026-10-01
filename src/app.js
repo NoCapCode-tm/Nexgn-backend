@@ -13,7 +13,7 @@ import {
     razorpayWebhook
 } from "./controller/razorpayWebhook.controller.js";
 import subscriptionrouter from "./routes/subscription.routes.js";
-import { globalRateLimiter } from "./middleware/rateLimit.middleware.js";
+// import { globalRateLimiter } from "./middleware/rateLimit.middleware.js";
 import { contactrouter } from "./routes/contact.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 

@@ -33,7 +33,7 @@ const DOWNLOAD_ICON = `${ASSET_URL}/download.png`;
 
 const SOCIAL_LINKS = [
   { href: "https://linkedin.com/company/nexgncloud", icon: LINKEDIN_ICON, alt: "LinkedIn" },
-  { href: "https://instagram.com/nexgn", icon: INSTAGRAM_ICON, alt: "Instagram" },
+  { href: "https://instagram.com/nexgn.cloud", icon: INSTAGRAM_ICON, alt: "Instagram" },
 ];
 
 const COLORS = {

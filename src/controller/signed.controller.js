@@ -383,8 +383,8 @@ export const submitdoc = asynchandler(async (req, res) => {
     request.recipient.signedAt =
         signedAt;
 
-    request.signerToken =
-        null;
+    // request.signerToken =
+    //     null;
 
     await request.save();
 

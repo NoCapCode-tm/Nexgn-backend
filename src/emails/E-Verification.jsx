@@ -149,7 +149,7 @@ export default function VerifyEmail({
                   className="drop-cap-img"
                 />
               </Column>
-              <Column style={styles.testimonialCol, {marginTop: 44}}>
+              <Column style={{ ...styles.testimonialCol, marginTop: 44 }}>
                 <Text style={styles.testimonialText}>
                   If you have any questions, just reply to this email a real
                   person on our team will respond within a few hours.
@@ -264,7 +264,7 @@ export default function VerifyEmail({
                 </Link>
               </Column>
               <Column align="center">
-                <Link href="https://instagram.com/nexgn">
+                <Link href="https://instagram.com/nexgn.cloud">
                   <Img src={INSTAGRAM_ICON} width="24" height="24" alt="Instagram" />
                 </Link>
               </Column>

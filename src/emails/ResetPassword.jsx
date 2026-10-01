@@ -252,7 +252,7 @@ export default function ResetPasswordEmail({
                 </Link>
               </Column>
               <Column align="center">
-                <Link href="https://instagram.com/nexgn">
+                <Link href="https://instagram.com/nexgn.cloud">
                   <Img src={SECOND_SOCIAL_ICON} width="24" height="24" alt="Social" />
                 </Link>
               </Column>
