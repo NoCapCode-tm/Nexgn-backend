@@ -19,7 +19,7 @@ const UserSchema = mongoose.Schema({
         type:String,
     },
     phone_no:{
-        type:Number,
+        type:String,
         default:null,
     },
     role:{
@@ -46,7 +46,7 @@ const UserSchema = mongoose.Schema({
       type:String
     },
     emergency_contact:{
-      type:Number
+      type:String
     },
     address:{
         type:String

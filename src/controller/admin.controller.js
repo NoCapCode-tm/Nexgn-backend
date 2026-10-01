@@ -220,15 +220,15 @@ export const logout = asynchandler(async(req,res)=>{
 
 export const updateAdmin = asynchandler(async (req, res) => {
   const id = req.user._id;
-  console.log("called")
+  console.log("called");
+  
   const {
     name,
     phone_no,
-    profile_picture,
     time_zone,
     language,
-   currentpass,
-   updatepass,
+    currentpass,
+    updatepass,
     companyname,
     teamsize,
     address,
@@ -238,61 +238,82 @@ export const updateAdmin = asynchandler(async (req, res) => {
   } = req.body;
 
   const admin = await user.findById(id);
-  const team1 = await team.findById(req.user.teamid)
+  
+  // Safely check if user belongs to a team before querying it
+  let team1 = null;
+  if (req.user.teamid) {
+    team1 = await team.findById(req.user.teamid);
+  }
 
   if (!admin) {
+    // FIX 1: Activity log MUST happen BEFORE the throw statement
+    await activitylog.create({
+      userId: id,
+      action: "Account Updation Failure",
+      status: "Failure"
+    });
     throw new Apierror(404, "User not found");
-    const activity = await activitylog.create({
-             userId:admin._id,
-             action:"Account Updation Failure",
-             status:"Failure"
-         })
   }
 
   if (name !== undefined) admin.name = name;
   if (phone_no !== undefined) admin.phone_no = phone_no;
- if (req.file) {
-  const uploaded = await uploadToCloudinary(
-    req.file.buffer,
-    "profile-pictures",
-    `${admin._id}-${Date.now()}`
-  );
-
-  admin.profile_picture = uploaded.secure_url;
-}
-  if (time_zone !== undefined) admin.time_zone = time_zone;
-  if (language !== undefined) admin.language = language;
-  if (companyname !== undefined) team1.company_name = companyname;
-  if (teamsize !== undefined) team1.team_size = teamsize;
-  if(address !== undefined) admin.address = address;
-  if(emergency !==undefined) admin.emergency_contact = emergency;
-  if(gender !==undefined) admin.gender = gender;
-  if(status !== undefined) admin.status = status
-  if (
-  currentpass?.trim() &&
-  updatepass?.trim()
-) {
-  const correctpass = await admin.isPasswordcorrect(currentpass);
-
-  if (!correctpass) {
-    throw new Apierror(400, "Wrong current password");
-    const activity = await activitylog.create({
-             userId:admin._id,
-             action:"Account Updation Failure",
-             status:"Failure"
-         })
+  
+  if (req.file) {
+    const uploaded = await uploadToCloudinary(
+      req.file.buffer,
+      "profile-pictures",
+      `${admin._id}-${Date.now()}`
+    );
+    admin.profile_picture = uploaded.secure_url;
   }
 
-  admin.password = updatepass;
-}
+  if (time_zone !== undefined) admin.time_zone = time_zone;
+  if (language !== undefined) admin.language = language;
+  if (address !== undefined) admin.address = address;
+  if (emergency !== undefined) admin.emergency_contact = emergency;
+  if (gender !== undefined) admin.gender = gender;
+  if (status !== undefined) admin.status = status;
 
+  // FIX 2: If company details are updated, we MUST save the team document
+  if (team1) {
+    let teamUpdated = false;
+    if (companyname !== undefined) {
+      team1.company_name = companyname;
+      teamUpdated = true;
+    }
+    if (teamsize !== undefined) {
+      team1.team_size = teamsize;
+      teamUpdated = true;
+    }
+    if (teamUpdated) {
+      await team1.save();
+    }
+  }
+
+  if (currentpass?.trim() && updatepass?.trim()) {
+    const correctpass = await admin.isPasswordcorrect(currentpass);
+
+    if (!correctpass) {
+      // FIX 3: Activity log MUST happen BEFORE the throw statement
+      await activitylog.create({
+        userId: admin._id,
+        action: "Account Updation Failure",
+        status: "Failure"
+      });
+      throw new Apierror(400, "Wrong current password");
+    }
+
+    admin.password = updatepass;
+  }
+
+  // With phone_no set to String, this will now succeed safely!
   await admin.save();
 
-  const activity = await activitylog.create({
-            userId:admin._id,
-            action:"Account Updated Successfully",
-            status:"Success"
-        })
+  await activitylog.create({
+    userId: admin._id,
+    action: "Account Updated Successfully",
+    status: "Success"
+  });
 
   res.status(200).json(
     new Apiresponse(200, "Profile updated successfully", admin)
