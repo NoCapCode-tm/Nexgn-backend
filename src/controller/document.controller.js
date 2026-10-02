@@ -247,7 +247,7 @@ export const createdocument = asynchandler(async (req, res) => {
                 documentName: title,
                 deadlineDate: formattedDeadline,
                 viewUrl: `${process.env.FRONTEND_URI}/document/${signerToken}`,
-                note
+                note: note || "Please review this document and sign in the designated fields to confirm your acceptance."
             });
 
             const resend = new Resend(
