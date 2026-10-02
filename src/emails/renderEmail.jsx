@@ -8,6 +8,7 @@ import VerifyEmail from "./E-Verification.jsx";
 import DocumentSignedEmail from "./Doc-Signed.jsx";
 import TwoFactorEnabledEmail from "./2FAuth.jsx";
 import DocumentSignRequestEmail from "./Doc-Request.jsx";
+import NotificationAlertEmail from "./NotificationAlert.jsx";
 
 export const renderSubAdminInviteEmail = async (props) => {
     return await render(
@@ -46,5 +47,11 @@ export const renderVerifyEmail = async (props) => {
 export const renderdocEmail = async (props) => {
     return await render(
         React.createElement(DocumentSignRequestEmail, props)
+    );
+};
+
+export const renderNotificationEmail = async (props) => {
+    return await render(
+        React.createElement(NotificationAlertEmail, props)
     );
 };

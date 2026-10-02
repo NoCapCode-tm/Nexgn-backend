@@ -89,6 +89,44 @@ twoFABlockedUntil: {
   default: null,
 },
     permissions:[String],
+    notificationPreferencesConfigured:{
+        type:Boolean,
+        default:false
+    },
+    notificationPreferences:{
+        realtime_document_signed:{
+            type:Boolean,
+            default:false
+        },
+        realtime_signature_request:{
+            type:Boolean,
+            default:false
+        },
+        realtime_document_expired:{
+            type:Boolean,
+            default:false
+        },
+        realtime_security:{
+            type:Boolean,
+            default:false
+        },
+        email_document_signed:{
+            type:Boolean,
+            default:false
+        },
+        email_signature_request:{
+            type:Boolean,
+            default:false
+        },
+        email_document_expired:{
+            type:Boolean,
+            default:false
+        },
+        email_security:{
+            type:Boolean,
+            default:false
+        }
+    },
     resetpasswordtoken:{
         token:{
             type:String,

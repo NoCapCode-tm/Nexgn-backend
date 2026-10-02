@@ -1,6 +1,7 @@
 import app from "./app.js"
 import dotenv from "dotenv"
 import { connectdb } from "./database/db.js";
+import { sweepExpiredRequests } from "./utils/notification.utils.js";
 
 dotenv.config(
     {
@@ -17,6 +18,15 @@ connectdb()
     app.listen(PORT,()=>{
         console.log(`App is listening on pOrt ${PORT}`)
     })
+
+    const runExpirySweep = () => {
+        sweepExpiredRequests().catch((error) => {
+            console.error("Expired document sweep failed:", error?.message);
+        });
+    };
+
+    runExpirySweep();
+    setInterval(runExpirySweep, 60 * 1000);
 }).catch((error)=>{
    console.log("Something went wrong")
 })

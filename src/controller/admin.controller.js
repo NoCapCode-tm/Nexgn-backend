@@ -13,6 +13,7 @@ import QRCode from "qrcode";
 import { team} from "../models/team.model.js";
 import { Contacts } from "../models/contact.model.js";
 import { uploadToCloudinary } from "../utils/cloudinary.utils.js";
+import { notifyUser } from "../utils/notification.utils.js";
 
 
 
@@ -162,6 +163,13 @@ export const loginAdmin = asynchandler(async(req,res)=>{
             res.status(200)
             .json(new Apiresponse(200,"Login successfull",loginuser))
          }else{
+            await notifyUser({
+                userId: loginuser._id,
+                type: "security",
+                title: "New login",
+                message: "Your Nexgn account was just signed in.",
+                link: "/settings?tab=security",
+            });
             res.status(200)
             .cookie("token",token,options)
             .json(new Apiresponse(200,"Login successfull",loginuser))
@@ -290,6 +298,8 @@ export const updateAdmin = asynchandler(async (req, res) => {
     }
   }
 
+  let passwordChanged = false;
+
   if (currentpass?.trim() && updatepass?.trim()) {
     const correctpass = await admin.isPasswordcorrect(currentpass);
 
@@ -304,10 +314,21 @@ export const updateAdmin = asynchandler(async (req, res) => {
     }
 
     admin.password = updatepass;
+    passwordChanged = true;
   }
 
   // With phone_no set to String, this will now succeed safely!
   await admin.save();
+
+  if (passwordChanged) {
+    await notifyUser({
+      userId: admin._id,
+      type: "security",
+      title: "Password changed",
+      message: "Your Nexgn password was just changed.",
+      link: "/settings?tab=security",
+    });
+  }
 
   await activitylog.create({
     userId: admin._id,
@@ -758,6 +779,14 @@ await resend.emails.send({
     html
 });
 
+    await notifyUser({
+        userId: admin._id,
+        type: "security",
+        title: "Two-factor authentication enabled",
+        message: "Two-factor authentication is now turned on for your account.",
+        link: "/settings?tab=security",
+    });
+
     res.status(200)
     .json(new Apiresponse(200,"User verified Successfully",admin))
     //checking
@@ -846,6 +875,14 @@ export const verifyotplogin = asynchandler(async (req, res) => {
 
   await admin.save();
 
+  await notifyUser({
+    userId: admin._id,
+    type: "security",
+    title: "New login",
+    message: "Your Nexgn account was just signed in.",
+    link: "/settings?tab=security",
+  });
+
   // Generate final authenticated JWT
   const token1 = await admin.AccessToken();
 
@@ -904,6 +941,14 @@ export const disabletwofa = asynchandler(async(req,res)=>{
      admin.twoFAsecret = null
      admin.twoFAenabled = false
      await admin.save()
+
+     await notifyUser({
+        userId: admin._id,
+        type: "security",
+        title: "Two-factor authentication disabled",
+        message: "Two-factor authentication was turned off for your account.",
+        link: "/settings?tab=security",
+     });
 
      res.status(200)
      .json(new Apiresponse(200,"Two Factor Authentication Disabled",[]))

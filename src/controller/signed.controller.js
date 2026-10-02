@@ -18,6 +18,7 @@ import crypto from "crypto";
 import { downloadFileFromDrive } from "../utils/downloadFileFromDrive.js";
 import { team } from "../models/team.model.js";
 import { request } from "http";
+import { markRequestExpired, notifyUser } from "../utils/notification.utils.js";
 
 
 
@@ -49,8 +50,7 @@ export const statuschange = asynchandler(async (req, res) => {
         request.expiresat &&
         Date.now() >= request.expiresat.getTime()
     ) {
-        request.overallStatus = "Expired";
-        await request.save();
+        await markRequestExpired(request);
 
         throw new Apierror(
             410,
@@ -158,8 +158,7 @@ export const submitdoc = asynchandler(async (req, res) => {
         request.expiresat &&
         Date.now() >= request.expiresat.getTime()
     ) {
-        request.overallStatus = "Expired";
-        await request.save();
+        await markRequestExpired(request);
 
         throw new Apierror(
             410,
@@ -570,6 +569,21 @@ export const submitdoc = asynchandler(async (req, res) => {
             emailHtml
     });
 
+    const signedByOwner = sender.email &&
+        receiver.email &&
+        sender.email.toLowerCase() === receiver.email.toLowerCase();
+
+    await notifyUser({
+        userId: sender._id,
+        type: "document_signed",
+        title: "Document signed",
+        message: signedByOwner
+            ? `You signed "${document.title}".`
+            : `${receiver.name} signed "${document.title}".`,
+        link: "/documents",
+        refId: request._id,
+    });
+
     const requests =
         await signrequest.find({
             documentId:
@@ -681,9 +695,7 @@ export const getrequest = asynchandler(async (req, res) => {
         request.expiresat &&
         Date.now() >= request.expiresat.getTime()
     ) {
-        request.overallStatus = "Expired";
-
-        await request.save();
+        await markRequestExpired(request);
 
         throw new Apierror(
             410,
@@ -878,8 +890,7 @@ export const disapprove = asynchandler(async (req, res) => {
         request.expiresat &&
         Date.now() >= request.expiresat.getTime()
     ) {
-        request.overallStatus = "Expired";
-        await request.save();
+        await markRequestExpired(request);
 
         throw new Apierror(
             410,
@@ -1009,8 +1020,7 @@ export const requestcancel = asynchandler(async (req, res) => {
         request.expiresat &&
         Date.now() >= request.expiresat.getTime()
     ) {
-        request.overallStatus = "Expired";
-        await request.save();
+        await markRequestExpired(request);
 
         throw new Apierror(
             410,

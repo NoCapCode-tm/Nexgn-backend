@@ -17,6 +17,7 @@ import { certificate } from "../models/Certificate.models.js";
 import { template } from "../models/Template.js";
 import { renderdocEmail } from "../emails/renderEmail.jsx";
 import { Contacts } from "../models/contact.model.js";
+import { findUserByEmail, notifyUser } from "../utils/notification.utils.js";
 
 
 
@@ -264,6 +265,21 @@ export const createdocument = asynchandler(async (req, res) => {
             });
 
             console.log("EMAIL SENT TO:", signee.email);
+
+            const recipientAccount = await findUserByEmail(signee.email);
+            if (
+                recipientAccount &&
+                String(recipientAccount._id) !== String(req.user._id)
+            ) {
+                await notifyUser({
+                    userId: recipientAccount._id,
+                    type: "signature_request",
+                    title: "Signature request received",
+                    message: `${req.user.name} asked you to sign "${title}".`,
+                    link: `/document/${signerToken}`,
+                    refId: signature._id,
+                });
+            }
         });
 
         await Promise.all(tasks);
