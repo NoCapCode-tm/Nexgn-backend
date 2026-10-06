@@ -10,7 +10,6 @@ function dataUrlToBuffer(dataUrl) {
     }
 
     const commaIndex = dataUrl.indexOf(",");
-
     if (commaIndex === -1) {
         return null;
     }
@@ -34,22 +33,12 @@ function detectImageType(buffer) {
     if (!buffer || buffer.length < 4) {
         return null;
     }
-
-    // PNG
-    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
-        return "png";
-    }
-
-    // JPEG
-    if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
-        return "jpg";
-    }
-
+    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) return "png";
+    if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return "jpg";
     return null;
 }
 
-// pdf-lib uses a bottom-left origin (0,0 is bottom left).
-// This calculates the correct Y coordinate for the bottom-left of our widget box.
+// pdf-lib's origin (0,0) is the bottom-left corner of the page.
 function getPdfY(page, y, height) {
     return page.getHeight() - Number(y) - Number(height);
 }
@@ -58,46 +47,44 @@ export const generateSignedDocumentPDF = async ({
     pdfBuffer,
     widgets
 }) => {
+
     const pdfDoc = await PDFDocument.load(pdfBuffer);
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-    // ==========================================
-    // FIX 1: COORDINATE SCALING
-    // Matches the page.getViewport({ scale: 1.2 }) from SignViewer_2.jsx
-    // ==========================================
+    // Matches the page.getViewport({ scale: 1.2 }) from your frontend
     const SCALE_FACTOR = 1.2;
+    
+    // Simulate frontend CSS (1.5px border + 4px padding = 5.5px inset)
+    const INSET = 5.5 / SCALE_FACTOR;
 
     for (const widget of widgets) {
         const pageNumber = Number(widget.page);
 
-        if (!pageNumber || pageNumber < 1) {
-            continue;
-        }
+        if (!pageNumber || pageNumber < 1) continue;
 
         const page = pdfDoc.getPage(pageNumber - 1);
+        if (!page) continue;
 
-        if (!page) {
-            continue;
-        }
-
-        // Downscale the coordinates from the 1.2x frontend grid back to native PDF points
+        // 1. Convert widget coordinates to native PDF points
         const x = (Number(widget.x) || 0) / SCALE_FACTOR;
         const y = (Number(widget.y) || 0) / SCALE_FACTOR;
         const width = (Number(widget.width) || 100) / SCALE_FACTOR;
         const height = (Number(widget.height) || 30) / SCALE_FACTOR;
+
+        // 2. Calculate the "content box" (inside the CSS padding/borders)
+        const contentX = x + INSET;
+        const contentY = getPdfY(page, y, height) + INSET;
+        const contentWidth = Math.max(0, width - (INSET * 2));
+        const contentHeight = Math.max(0, height - (INSET * 2));
 
         /*
          * SIGNATURE WIDGET
          */
         if (widget.widgetname === "signature") {
             const imageData = dataUrlToBuffer(widget.value);
-
-            if (!imageData) {
-                continue;
-            }
+            if (!imageData) continue;
 
             let image;
-
             if (imageData.type === "png") {
                 const pngBytes = new Uint8Array(imageData.buffer);
                 image = await pdfDoc.embedPng(pngBytes);
@@ -107,38 +94,34 @@ export const generateSignedDocumentPDF = async ({
             }
 
             if (image) {
-                // ==========================================
-                // FIX 2: ASPECT RATIO PRESERVATION (object-fit: contain)
-                // ==========================================
                 const imgDims = image.scale(1);
                 const imgAspect = imgDims.width / imgDims.height;
                 
-                // Matches the 90% width/height CSS from `.signaturePreviewImage`
-                const paddedWidth = width * 0.9;
-                const paddedHeight = height * 0.9;
+                // Matches the CSS `.signaturePreviewImage` (90% width/height)
+                const paddedWidth = contentWidth * 0.9;
+                const paddedHeight = contentHeight * 0.9;
+                const paddingX = contentWidth * 0.05;
+                const paddingY = contentHeight * 0.05;
                 
                 let drawWidth, drawHeight, offsetX, offsetY;
 
-                // Calculate dimensions to fit inside the box without stretching
+                // Mathematical simulation of `object-fit: contain`
                 if (imgAspect > (paddedWidth / paddedHeight)) {
-                    // Image is wider than the box
                     drawWidth = paddedWidth;
                     drawHeight = paddedWidth / imgAspect;
                     offsetX = 0;
                     offsetY = (paddedHeight - drawHeight) / 2; // Center vertically
                 } else {
-                    // Image is taller than the box
                     drawHeight = paddedHeight;
                     drawWidth = paddedHeight * imgAspect;
                     offsetX = (paddedWidth - drawWidth) / 2; // Center horizontally
                     offsetY = 0;
                 }
 
-                // Add 5% padding offset + the centering offset
-                const finalX = x + (width * 0.05) + offsetX;
-                const finalY = getPdfY(page, y, height) + (height * 0.05) + offsetY;
+                // Apply padding and centering logic to the final coordinates
+                const finalX = contentX + paddingX + offsetX;
+                const finalY = contentY + paddingY + offsetY;
 
-                // Draw the signature perfectly centered and un-stretched
                 page.drawImage(image, {
                     x: finalX,
                     y: finalY,
@@ -158,15 +141,27 @@ export const generateSignedDocumentPDF = async ({
                 continue;
             }
 
-            const fontSize = Math.min(14, Math.max(8, height * 0.55));
+            const textStr = String(widget.value);
+            // Dynamic font sizing to fit the box
+            const fontSize = Math.min(14, Math.max(8, contentHeight * 0.6));
+            
+            // Calculate text width to horizontally center it (simulates text-align: center)
+            const textWidth = font.widthOfTextAtSize(textStr, fontSize);
+            let textX = contentX + (contentWidth - textWidth) / 2;
+            
+            // Prevent text from overflowing the left side if it's too long
+            if (textWidth > contentWidth) textX = contentX + 2; 
 
-            page.drawText(String(widget.value), {
-                x: x + 4,
-                y: getPdfY(page, y, height) + Math.max(2, (height - fontSize) / 2),
+            // Calculate exact vertical centering using cap-height offset
+            const textY = contentY + (contentHeight / 2) - (fontSize * 0.3);
+
+            page.drawText(textStr, {
+                x: textX,
+                y: textY,
                 size: fontSize,
                 font,
                 color: rgb(0, 0, 0),
-                maxWidth: Math.max(10, width - 8)
+                maxWidth: Math.max(10, contentWidth)
             });
         }
     }
