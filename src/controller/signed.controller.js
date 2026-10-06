@@ -693,14 +693,11 @@ export const getrequest = asynchandler(async (req, res) => {
 
     if (
         request.expiresat &&
-        Date.now() >= request.expiresat.getTime()
+        Date.now() >= request.expiresat.getTime() &&
+        request.overallStatus !== "completed" &&
+        request.overallStatus !== "cancelled"
     ) {
         await markRequestExpired(request);
-
-        throw new Apierror(
-            410,
-            "Signature Request Expired"
-        );
     }
 
     if (
@@ -708,9 +705,12 @@ export const getrequest = asynchandler(async (req, res) => {
         request.overallStatus === "cancelled" ||
         request.overallStatus === "Expired"
     ) {
-        throw new Apierror(
-            400,
-            `Request is already ${request.overallStatus}`
+        return res.status(200).json(
+            new Apiresponse(
+                200,
+                "Request fetched successfully",
+                request
+            )
         );
     }
 
