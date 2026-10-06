@@ -60,6 +60,10 @@ const UserSchema = mongoose.Schema({
         enum:["Active","Not-Active","Declined"],
         default:"Not-Active"
     },
+    hasSeenBilling:{
+        type:Boolean,
+        default:true
+    },
     // addedby:{
     //     type:mongoose.Schema.Types.ObjectId,
     //     ref:"user",
