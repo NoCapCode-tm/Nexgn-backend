@@ -15,6 +15,13 @@ const razorpayTimestampToDate = (timestamp) => {
     return new Date(timestamp * 1000);
 };
 
+const markBillingSeen = async (userId) => {
+    if (!userId) return;
+    await user.findByIdAndUpdate(userId, {
+        hasSeenBilling: true
+    });
+};
+
 
 export const getSubscriptionPlans = asynchandler(async (req, res) => {
 
@@ -592,6 +599,8 @@ export const verifySubscriptionPayment =
             await previousSubscription.save();
         }
 
+        await markBillingSeen(admin._id);
+
 
         // --------------------------------------------------
         // PAYMENT COMPLETE
@@ -747,6 +756,7 @@ export const getMyPayments =
             activeSubscription.planId.toString() ===
                 plan._id.toString()
         ) {
+            await markBillingSeen(admin._id);
 
             return res.status(200).json(
                 new Apiresponse(
@@ -919,6 +929,8 @@ export const getMyPayments =
 
             await activeSubscription.save();
         }
+
+        await markBillingSeen(admin._id);
 
 
         // --------------------------------------------------

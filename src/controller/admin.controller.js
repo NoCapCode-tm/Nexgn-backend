@@ -48,7 +48,8 @@ export const adminsignup = asynchandler(async (req, res) => {
         email: normalizedEmail,
         password,
         role: "Admin",
-        status: "Not-Active"
+        status: "Not-Active",
+        hasSeenBilling: false
     });
 
     const team1 = await team.create({
