@@ -32,7 +32,7 @@ connectdb()
     };
 
     runExpirySweep();
-    setInterval(runExpirySweep, 60 * 1000);
+    setInterval(runExpirySweep, 24*60*60 * 1000);
 }).catch((error)=>{
    console.log("Something went wrong")
 })
